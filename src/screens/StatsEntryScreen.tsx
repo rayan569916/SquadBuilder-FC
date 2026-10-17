@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Award, CirclePlus, LoaderCircle, Shield, Target, Trash2, Trophy } from 'lucide-react';
-import { MOTMModal } from '../components/MOTMModal';
+import { InlineMOTMPoll } from '../components/InlineMOTMPoll';
 import { api, MatchDetail } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { MatchEvent, MatchEventType, MatchTeam, Profile } from '../types/database';
@@ -35,7 +35,6 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
   const [assistId, setAssistId] = useState('');
   const [minute, setMinute] = useState('');
   const [notes, setNotes] = useState('');
-  const [votingOpen, setVotingOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -64,24 +63,17 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
   const teamAPlayers = detail?.roster.filter((entry) => entry.team === 'A').map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
   const teamBPlayers = detail?.roster.filter((entry) => entry.team === 'B').map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
   const eventPlayers = eventTeam === 'A' ? teamAPlayers : teamBPlayers;
-  const candidates = detail?.roster.map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
   const score = useMemo(() => events.reduce((total, event) => {
     if (!scoringTypes.includes(event.type)) return total;
     total[event.team] += 1;
     return total;
   }, { A: 0, B: 0 }), [events]);
-  const hasVoted = detail?.votes.some((vote) => vote.voter_id === currentUser?.id) || false;
-  const isParticipant = detail?.roster.some((entry) => entry.player_id === currentUser?.id) || false;
   const matchMetrics = [
     { label: 'Goals', value: score.A + score.B, Icon: Target },
     { label: 'Assists', value: events.filter((event) => event.assist_id).length, Icon: Award },
     { label: 'Saves', value: events.filter((event) => event.type === 'save' || event.type === 'penalty_save').length, Icon: Shield },
     { label: 'Tackles won', value: events.filter((event) => event.type === 'tackle').length, Icon: Activity },
   ];
-  const voteLeader = [...candidates].sort((left, right) =>
-    (detail?.votes.filter((vote) => vote.voted_player_id === right.id).length || 0)
-    - (detail?.votes.filter((vote) => vote.voted_player_id === left.id).length || 0),
-  )[0];
 
   useEffect(() => {
     if (!eventPlayers.some((player) => player.id === playerId)) setPlayerId(eventPlayers[0]?.id || '');
@@ -167,15 +159,10 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
         </ol>
       </section>
 
-      {canEdit && <button onClick={() => void saveResult()} disabled={saving} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-4 font-semibold text-white shadow-[0_0_22px_rgba(112,66,248,0.32)] disabled:opacity-50">{saving && <LoaderCircle size={17} className="animate-spin" />}Lock Stats &amp; Vote</button>}
-      {match.status === 'completed' && <section className="glass-card rounded-2xl p-4"><div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="font-display text-base font-semibold text-white">Player of the Match</h2><p className="mt-1 text-[10px] text-slate-400">{detail?.votes.length || 0} votes recorded</p></div><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] text-primary">{detail?.votes.length || 0} / {candidates.length} eligible</span></div>{voteLeader && (detail?.votes.length || 0) > 0 && <div className="mb-3 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.08] p-3"><span className="grid h-9 w-9 place-items-center rounded-full bg-primary-container text-xs font-bold text-white">{voteLeader.name.slice(0, 2).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-white">{voteLeader.name}</span><span className="text-[10px] text-slate-400">{voteLeader.position} · Current vote leader</span></span><span className="text-xs font-semibold text-primary">{detail?.votes.filter((vote) => vote.voted_player_id === voteLeader.id).length || 0} votes</span></div>}<button disabled={!isParticipant || hasVoted} onClick={() => setVotingOpen(true)} className="w-full rounded-full bg-primary-container px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{hasVoted ? 'Vote submitted' : isParticipant ? 'Vote for Player of the Match' : 'Match players only'}</button></section>}
+      {canEdit && <button onClick={() => void saveResult()} disabled={saving} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-4 font-semibold text-white shadow-[0_0_22px_rgba(112,66,248,0.32)] disabled:opacity-50">{saving && <LoaderCircle size={17} className="animate-spin" />}{saving ? 'Saving result…' : 'Save final result'}</button>}
+      {match.status === 'completed' && detail && <InlineMOTMPoll detail={detail} currentUser={currentUser} isAdmin={isAdmin} onDetailUpdated={setDetail} />}
 
       {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-      <MOTMModal isOpen={votingOpen} onClose={() => setVotingOpen(false)} match={match} candidates={candidates} currentUserId={currentUser?.id || ''} canVote={isParticipant && match.status === 'completed'} onVoteCast={async () => {
-        const refreshed = await api.getMatchDetail(match.id);
-        setDetail(refreshed);
-        setVotingOpen(false);
-      }} />
     </div>
   );
 };

@@ -75,7 +75,7 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#080a10] text-slate-100">
-      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#080a10]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/8 bg-[#080a10]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
           <button onClick={() => navigateTo('club')} className="flex min-w-0 items-center gap-2.5 text-left" aria-label="SquadBuilder home">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-sky-200/20 bg-sky-300/10 text-sky-200"><Shield size={19} /></span>
@@ -99,9 +99,9 @@ export const AppNavigator: React.FC = () => {
       </header>
 
       {logoutError && <p role="alert" className="mx-auto max-w-5xl px-4 py-2 text-sm text-rose-300">{logoutError}</p>}
-      <main className="ambient-blueprint ambient-halo mx-auto min-h-[calc(100vh-8rem)] w-full max-w-5xl pb-24">{renderActiveScreen()}</main>
+      <main className="ambient-blueprint ambient-halo mx-auto min-h-[calc(100vh-8rem)] w-full max-w-5xl pb-[calc(6rem+env(safe-area-inset-bottom))]">{renderActiveScreen()}</main>
 
-      <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0c0e15]/95 pb-safe backdrop-blur">
+      <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0c0e15]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto grid h-16 max-w-lg grid-cols-4 items-center px-2">
           {navItems.map(({ id, label, Icon }) => (
             <button key={id} onClick={() => navigateTo(id)} aria-current={activeNavId === id ? 'page' : undefined}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowRight, Award, Camera, LoaderCircle, Medal, Shield, Target, Trophy } from 'lucide-react';
 import { GoalkeeperRadarChart, RadarChart } from '../components/RadarChart';
-import { goalkeeperAttributeFields, playerAttributeFields } from '../lib/playerRatings';
+import { getProfileOverallRating, goalkeeperAttributeFields, playerAttributeFields } from '../lib/playerRatings';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Profile } from '../types/database';
@@ -60,6 +60,7 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
     { label: 'Goals', value: profile.goals, Icon: Target },
     { label: 'Assists', value: profile.assists, Icon: Award },
     { label: 'MOTM', value: profile.motm_count, Icon: Trophy },
+    { label: 'Votes received', value: profile.total_motm_votes, Icon: Trophy },
     { label: 'Saves', value: profile.saves, Icon: Shield },
     { label: 'Tackles', value: profile.tackles, Icon: Medal },
   ];
@@ -82,7 +83,7 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
         <p className="mt-1 text-[10px] uppercase text-slate-400">{profile.position} · {profile.role}{profile.age ? ` · Age ${profile.age}` : ''}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sky-200/20 bg-sky-200/[0.07] px-3 py-1 text-[9px] font-medium uppercase tracking-wide text-sky-200"><Shield size={12} />Player / {profile.role}</span>
         <div className="mt-4 flex items-center justify-center gap-2">
-          <span className="rounded-full bg-primary-container/20 px-3 py-1.5 text-[10px] font-semibold text-primary">{profile.overall_rating} OVR</span>
+          <span className="rounded-full bg-primary-container/20 px-3 py-1.5 text-[10px] font-semibold text-primary">{getProfileOverallRating(profile) ?? '—'} OVR</span>
           {onNavigateToTactics && <button onClick={onNavigateToTactics} className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-slate-200">View tactics</button>}
         </div>
       </section>

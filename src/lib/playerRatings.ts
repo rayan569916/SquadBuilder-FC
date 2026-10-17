@@ -1,4 +1,4 @@
-import { GoalkeeperAttributes, PlayerAttributes, PlayerPosition } from '../types/database';
+import { GoalkeeperAttributes, PlayerAttributes, PlayerPosition, Profile } from '../types/database';
 
 export type PlayerAttributeKey = 'impact' | 'shooting' | 'passing' | 'defense' | 'physical';
 export type GoalkeeperAttributeKey = keyof GoalkeeperAttributes;
@@ -25,4 +25,18 @@ export const calculateOverallRating = (attributes: PlayerAttributes, position: P
     ? goalkeeperAttributeFields.map(({ key }) => attributes.goalkeeping?.[key] || 0)
     : playerAttributeFields.map(({ key }) => attributes[key]);
   return Math.round(ratings.reduce((total, rating) => total + rating, 0) / ratings.length);
+};
+
+export const getProfileOverallRating = (profile: Pick<Profile, 'position' | 'attributes' | 'overall_rating'>): number | undefined => {
+  if (profile.position === 'GK') {
+    const ratings = goalkeeperAttributeFields.map(({ key }) => profile.attributes?.goalkeeping?.[key]);
+    return ratings.every((rating) => typeof rating === 'number' && Number.isFinite(rating))
+      ? calculateOverallRating(profile.attributes as PlayerAttributes, profile.position)
+      : undefined;
+  }
+
+  const ratings = playerAttributeFields.map(({ key }) => profile.attributes?.[key]);
+  return ratings.every((rating) => typeof rating === 'number' && Number.isFinite(rating))
+    ? calculateOverallRating(profile.attributes as PlayerAttributes, profile.position)
+    : profile.overall_rating;
 };

@@ -44,6 +44,7 @@ export interface Profile {
   jersey_number?: number;
   elo_rating: number;
   overall_rating: number;
+  total_motm_votes: number;
   
   // Player Stats
   goals: number;
@@ -102,6 +103,8 @@ export interface Match {
   pass_acc_a?: number;
   pass_acc_b?: number;
   motm_player_id?: string;
+  motm_locked_at?: string;
+  motm_approved_by?: string;
   events?: MatchEvent[];
   created_by?: string;
   created_at?: string;

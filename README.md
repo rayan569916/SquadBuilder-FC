@@ -6,7 +6,7 @@ A match organizer for small-sided games. Admins and managers create fixtures, se
 
 1. Create a Supabase project.
 2. Apply `supabase/migrations/202610170001_initial_schema.sql` in the Supabase SQL Editor.
-   Then apply `supabase/migrations/202610170002_player_attributes.sql` to store the five player attributes.
+   Then apply `supabase/migrations/202610170002_player_attributes.sql` for player attributes and `supabase/migrations/202610170003_motm_approval_and_vote_totals.sql` for MVP approval, vote locking, and lifetime vote totals.
 3. Create the first Auth user from the Supabase Dashboard. In the SQL Editor, grant that account the initial admin role:
 
    ```sql

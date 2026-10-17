@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, ArrowRight, CalendarDays, ChartNoAxesColumn, CheckCircle2, Clock3, MapPin, ShieldCheck, Trophy } from 'lucide-react';
 import { api, MatchDetail } from '../lib/api';
+import { getProfileOverallRating } from '../lib/playerRatings';
 import { useAuth } from '../context/AuthContext';
 import { Match } from '../types/database';
 
@@ -72,7 +73,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
       <section className="glass-card rounded-2xl p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200"><Activity size={14} /> Momentum &amp; goal curve</h2><span className="rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-2.5 py-1 text-[9px] text-emerald-200">{currentUser?.win_percentage}% win rate</span></div>
-        <div className="flex items-end justify-between"><p className="font-display text-2xl font-semibold text-white">{currentUser?.elo_rating}<span className="ml-1 text-xs font-normal text-slate-400">ELO</span></p><span className="text-[10px] text-emerald-200">{currentUser?.overall_rating} OVR</span></div>
+        <div className="flex items-end justify-between"><p className="font-display text-2xl font-semibold text-white">{currentUser?.elo_rating}<span className="ml-1 text-xs font-normal text-slate-400">ELO</span></p><span className="text-[10px] text-emerald-200">{currentUser ? getProfileOverallRating(currentUser) ?? '—' : '—'} OVR</span></div>
         <div className="mt-2 h-20 rounded-lg bg-[#080a10]/40 p-2"><svg viewBox="0 0 100 70" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label="Recent match form momentum"><polyline points={formPoints} fill="none" stroke="#10b981" strokeWidth="2" vectorEffect="non-scaling-stroke" />{formValues.map((value, index) => <circle key={`${value}-${index}`} cx={formValues.length === 1 ? 50 : 8 + (index / (formValues.length - 1)) * 84} cy={62 - value * 14} r="2" fill="#a2caf9" />)}</svg></div>
         <div className="mt-3 flex items-center justify-between gap-3"><div className="flex gap-1.5">{recentForm.length ? recentForm.slice(-5).map((result, index) => <span key={`${result}-${index}`} className={`grid h-6 w-6 place-items-center rounded-full border text-[9px] font-semibold ${result === 'W' ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : result === 'D' ? 'border-amber-300/30 bg-amber-300/10 text-amber-200' : 'border-rose-400/30 bg-rose-400/10 text-rose-200'}`}>{result}</span>) : <span className="text-[10px] text-slate-500">No results yet</span>}</div><span className="text-right text-[9px] text-slate-400">{currentUser?.matches_played} matches · {currentUser?.goals} goals</span></div>
       </section>

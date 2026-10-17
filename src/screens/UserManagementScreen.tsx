@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LoaderCircle, Pencil, Save, UserPlus, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { calculateOverallRating, goalkeeperAttributeFields, playerAttributeFields, GoalkeeperAttributeKey, PlayerAttributeKey } from '../lib/playerRatings';
+import { calculateOverallRating, getProfileOverallRating, goalkeeperAttributeFields, playerAttributeFields, GoalkeeperAttributeKey, PlayerAttributeKey } from '../lib/playerRatings';
 import { GoalkeeperAttributes, PlayerAttributes, PlayerPosition, Profile, UserRole } from '../types/database';
 
 type AttributeDraft = Record<PlayerAttributeKey, string> & Record<GoalkeeperAttributeKey, string>;
@@ -183,7 +183,7 @@ export const UserManagementScreen: React.FC = () => {
                   <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-slate-800 text-sm font-semibold text-white">
                     {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.name.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="min-w-0"><p className="truncate text-sm font-medium text-white">{profile.name}</p><p className="truncate text-xs text-slate-400">{profile.email}</p><p className="mt-1 text-[10px] text-sky-200">{profile.position} · {profile.role} · OVR {profile.overall_rating}</p></div>
+                  <div className="min-w-0"><p className="truncate text-sm font-medium text-white">{profile.name}</p><p className="truncate text-xs text-slate-400">{profile.email}</p><p className="mt-1 text-[10px] text-sky-200">{profile.position} · {profile.role} · OVR {getProfileOverallRating(profile) ?? '—'}</p></div>
                 </div>
                 <button type="button" onClick={() => editingProfileId === profile.id ? (setEditingProfileId(null), setEditDraft(null)) : beginEdit(profile)} className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-white/10 px-3 text-xs text-slate-200">{editingProfileId === profile.id ? <><X size={14} />Cancel</> : <><Pencil size={14} />Edit account</>}</button>
                 {editingProfileId === profile.id && editDraft && <form onSubmit={(event) => void saveAccount(event, profile)} className="col-span-full grid gap-3 rounded-xl border border-white/8 bg-[#080a10]/50 p-3 sm:grid-cols-2">

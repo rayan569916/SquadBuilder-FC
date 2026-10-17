@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeftRight, LoaderCircle, Save, ShieldAlert } from 'lucide-react';
 import { FormationsBoard } from '../components/FormationsBoard';
 import { api, MatchDetail } from '../lib/api';
+import { getProfileOverallRating } from '../lib/playerRatings';
 import { useAuth } from '../context/AuthContext';
 import { MatchLineup, MatchRosterEntry } from '../types/database';
 
@@ -84,9 +85,10 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
   const managerId = team === 'A' ? detail.match.manager_a_id : detail.match.manager_b_id;
   const managerName = detail.profiles.find((profile) => profile.id === managerId)?.name
     || 'Assigned manager';
-  const averageRating = teamPlayers.length
-    ? Math.round(teamPlayers.reduce((total, entry) => total + (entry.player?.overall_rating || 0), 0) / teamPlayers.length)
-    : 0;
+  const teamRatings = teamPlayers.map((entry) => entry.player ? getProfileOverallRating(entry.player) : undefined);
+  const averageRating = teamRatings.length > 0 && teamRatings.every((rating): rating is number => rating !== undefined)
+    ? Math.round(teamRatings.reduce((total, rating) => total + rating, 0) / teamRatings.length)
+    : undefined;
 
   return (
     <div className="space-y-5 px-4 py-5 sm:px-6 sm:py-7">
@@ -96,7 +98,7 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
       </header>
 
       <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Team formation">
-        {(['A', 'B'] as const).map((side) => <button key={side} role="tab" aria-selected={team === side} onClick={() => setTeam(side)} className={`rounded-2xl border p-3 text-left transition ${team === side ? 'border-primary/40 bg-primary/[0.12] shadow-[0_0_18px_rgba(112,66,248,0.16)]' : 'border-white/[0.07] bg-white/[0.03]'}`}><span className="block text-[9px] font-semibold uppercase tracking-wide text-sky-200">Team {side}</span><span className="mt-1 block truncate text-sm font-semibold text-white">{side === 'A' ? detail.match.team_a_name : detail.match.team_b_name}</span><span className="mt-1 block text-[10px] text-slate-400">{roster.filter((entry) => entry.team === side).length} players</span></button>)}
+        {(['A', 'B'] as const).map((side) => <button key={side} role="tab" aria-selected={team === side} onClick={() => setTeam(side)} className={`rounded-2xl border p-3 text-left transition ${team === side ? 'border-primary/40 bg-primary/[0.12] shadow-[0_0_18px_rgba(112,66,248,0.16)]' : 'border-white/[0.07] bg-white/3'}`}><span className="block text-[9px] font-semibold uppercase tracking-wide text-sky-200">Team {side}</span><span className="mt-1 block truncate text-sm font-semibold text-white">{side === 'A' ? detail.match.team_a_name : detail.match.team_b_name}</span><span className="mt-1 block text-[10px] text-slate-400">{roster.filter((entry) => entry.team === side).length} players</span></button>)}
       </div>
 
       <div className="flex items-center justify-between text-xs"><span className="text-slate-300">Manager: {managerName}</span><span className="text-[10px] uppercase text-slate-500">{detail.match.format}{detail.match.format === 'custom' ? ` · ${detail.match.custom_players_per_team} a side` : ''}</span></div>
@@ -111,10 +113,10 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
       />
 
       <section className="glass-card rounded-2xl p-4">
-        <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">Selected roster</h2><span className="text-[10px] text-sky-200">Average {averageRating} OVR</span></div>
+        <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">Selected roster</h2><span className="text-[10px] text-sky-200">Average {averageRating ?? '—'} OVR</span></div>
         <ul className="divide-y divide-white/10">
           {teamPlayers.map((entry) => <li key={entry.player_id} className="flex items-center justify-between gap-3 py-2.5">
-            <button onClick={() => onViewPlayer?.(entry.player_id)} className="min-w-0 text-left"><span className="block truncate text-sm text-white">{entry.player?.name || 'Player'}</span><span className="text-xs text-slate-400">{entry.player?.position} · {entry.player?.overall_rating} rating</span></button>
+            <button onClick={() => onViewPlayer?.(entry.player_id)} className="min-w-0 text-left"><span className="block text-sm text-white">{entry.player?.name || 'Player'}</span><span className="text-xs text-slate-400">{entry.player?.position} · {entry.player ? getProfileOverallRating(entry.player) ?? '—' : '—'} rating</span></button>
             {editing && canEdit && <button onClick={() => transferPlayer(entry.player_id)} className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-sky-200"><ArrowLeftRight size={13} /> Transfer</button>}
           </li>)}
           {teamPlayers.length === 0 && <li className="py-4 text-sm text-slate-400">No players assigned to this side.</li>}

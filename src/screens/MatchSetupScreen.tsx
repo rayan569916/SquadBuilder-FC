@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, LoaderCircle, MapPin, Shuffle, Users } from 'lucide-react';
 import { api } from '../lib/api';
+import { getProfileOverallRating } from '../lib/playerRatings';
 import { useAuth } from '../context/AuthContext';
 import { Match, MatchFormat, MatchLineup, MatchRosterEntry, Profile } from '../types/database';
 
@@ -205,7 +206,7 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
             {profiles.map((profile) => <label key={profile.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.07] bg-[#090b11]/70 p-3">
               <input type="checkbox" checked={selectedIds.includes(profile.id)} onChange={() => togglePlayer(profile.id)} className="h-4 w-4 accent-primary-container" />
               <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-800 text-xs font-semibold text-white">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.name.slice(0, 2).toUpperCase()}</span>
-              <span className="min-w-0 flex-1"><span className="block truncate text-sm text-white">{profile.name}</span><span className="text-xs text-slate-400">{profile.position} · {profile.overall_rating} rating</span></span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-sm text-white">{profile.name}</span><span className="text-xs text-slate-400">{profile.position} · {getProfileOverallRating(profile) ?? '—'} rating</span></span>
             </label>)}
           </div>
         )}

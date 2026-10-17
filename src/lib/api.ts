@@ -229,6 +229,14 @@ export const api = {
     return data as MotmVote;
   },
 
+  async approveMatchMotm(matchId: string, votedPlayerId: string): Promise<void> {
+    const { error } = await requireSupabase().rpc('approve_match_motm', {
+      p_match_id: matchId,
+      p_player_id: votedPlayerId,
+    });
+    if (error) throw error;
+  },
+
   async submitMatchStats(matchId: string, payload: {
     team_a_score: number;
     team_b_score: number;

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { getProfileOverallRating } from '../lib/playerRatings';
 import { MatchLineup, Profile } from '../types/database';
 
 export interface FormationNode {
@@ -40,11 +41,7 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
   const displayedLineups = lineups.filter((l) => (activeTeam === 'both' ? true : l.team === activeTeam));
 
   const handlePointerDown = (e: React.PointerEvent, lineupId: string) => {
-    if (!editable) {
-      const item = lineups.find((l) => l.id === lineupId);
-      if (item && onSelectPlayer) onSelectPlayer(item.player_id);
-      return;
-    }
+    if (!editable) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
@@ -87,9 +84,10 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
         ref={pitchRef}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`relative w-full aspect-[9/13] max-w-[500px] rounded-2xl overflow-hidden bg-[#090b14] border border-[rgba(162,202,249,0.25)] shadow-[0_24px_50px_rgba(0,0,0,0.85)] select-none touch-none transition-all ${
-          editable ? 'ring-2 ring-[#7042f8]/60 cursor-crosshair' : ''
+        className={`relative w-full aspect-9/13 max-w-125 rounded-2xl overflow-hidden bg-[#090b14] border border-[rgba(162,202,249,0.25)] shadow-[0_24px_50px_rgba(0,0,0,0.85)] select-none transition-all ${
+          editable ? 'touch-none ring-2 ring-[#7042f8]/60 cursor-crosshair' : 'touch-pan-y'
         }`}
       >
         {/* Tactical Pitch Markings SVG */}
@@ -189,6 +187,7 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
         {/* Player Nodes */}
         {displayedLineups.map((lineup) => {
           const player = lineup.player;
+          const playerRating = player ? getProfileOverallRating(player) : undefined;
           const isSelected = selectedNodeId === lineup.id;
           const isGK = lineup.position_tag === 'GK';
           const isTeamA = lineup.team === 'A';
@@ -230,7 +229,7 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
                       : 'text-secondary bg-[#080a14]/90 border-[rgba(186,215,247,0.3)]'
                   }`}
                 >
-                  {player?.overall_rating ?? '—'}
+                  {playerRating ?? '—'}
                 </span>
 
                 {/* Avatar Image or Initial Fallback */}
@@ -246,19 +245,19 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
                     {lineup.player?.name ? lineup.player.name.slice(0, 2).toUpperCase() : lineup.position_tag}
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-[#080a14] to-transparent"></div>
+                <div className="absolute inset-x-0 bottom-0 h-4 bg-linear-to-t from-[#080a14] to-transparent"></div>
               </div>
 
               {/* Player Name Pill */}
               <div
-                className={`w-16 sm:w-20 -mt-1.5 z-20 rounded-md py-0.5 px-1 text-center backdrop-blur-md shadow-md border ${
+                className={`w-19 sm:w-24 -mt-1.5 z-20 rounded-md py-0.5 px-1 text-center backdrop-blur-md shadow-md border ${
                   isTeamA
                     ? 'bg-[#1c4972]/95 border-[rgba(162,202,249,0.3)]'
                     : 'bg-[#7042f8]/95 border-[rgba(204,190,255,0.3)]'
                 }`}
               >
-                <p className="font-mono text-[8.5px] sm:text-[9.5px] font-bold text-white uppercase truncate leading-tight">
-                  {player ? player.name.split(' ').pop() : lineup.position_tag}
+                <p className="min-h-6 whitespace-normal wrap-break-word text-[9px] sm:text-[10px] font-bold text-white leading-3">
+                  {player?.name || lineup.position_tag}
                 </p>
                 <p className="text-[7px] text-[#d8ecf8] uppercase truncate leading-tight">
                   {lineup.position_tag} • {player?.club?.split(' ')[0] || 'FC'}
