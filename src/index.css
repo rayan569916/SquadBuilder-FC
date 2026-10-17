@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #ccbeff;
+  --color-primary-container: #7042f8;
+  --color-on-primary: #350097;
+  --color-secondary: #a2caf9;
+  --color-tertiary: #b6c9d5;
+  --color-surface-container-high: #282934;
+  --color-surface-container-low: #1a1b25;
+  --color-on-surface: #e2e1f0;
+}
+
 @layer base {
   :root {
     --font-sora: 'Sora', sans-serif;
@@ -10,6 +21,9 @@
     font-family: var(--font-geist);
     background-color: #05060f;
     color: #e2e1f0;
+    background-image: radial-gradient(ellipse at 50% -18%, rgba(112, 66, 248, 0.16), transparent 42%),
+      radial-gradient(ellipse at 50% 0%, rgba(28, 73, 114, 0.12), transparent 58%);
+    background-attachment: fixed;
   }
   
   h1, h2, h3, h4, .font-display, .font-headline {
@@ -21,11 +35,15 @@
   background-image: 
     linear-gradient(to right, rgba(162, 202, 249, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(162, 202, 249, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-size: 32px 32px;
 }
 
 .ambient-halo {
-  background: radial-gradient(circle at 50% 0%, rgba(112, 66, 248, 0.22) 0%, rgba(28, 73, 114, 0.14) 40%, transparent 70%);
+  background-image: linear-gradient(to right, rgba(162, 202, 249, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(162, 202, 249, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(186, 215, 247, 0.015), rgba(5, 6, 15, 0.18)),
+    radial-gradient(circle at 50% 0%, rgba(112, 66, 248, 0.10) 0%, rgba(28, 73, 114, 0.08) 40%, transparent 70%);
+  background-size: 32px 32px, 32px 32px, auto, auto;
 }
 
 .skywash-text {

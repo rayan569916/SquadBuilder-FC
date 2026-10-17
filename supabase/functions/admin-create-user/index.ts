@@ -47,6 +47,11 @@ Deno.serve(async (request: Request) => {
     const password = String(body.password || '');
     const role = body.role;
     const position = body.position;
+    const attributes = body.attributes;
+    const attributeKeys = ['impact', 'shooting', 'passing', 'defense', 'physical'] as const;
+    const hasValidAttributes = attributes && attributeKeys.every((key) =>
+      typeof attributes[key] === 'number' && Number.isInteger(attributes[key]) && attributes[key] >= 0 && attributes[key] <= 100,
+    );
 
     if (!email || !name || password.length < 10) {
       return Response.json({ error: 'Name, email, and a password of at least 10 characters are required.' }, { status: 400, headers: corsHeaders });
@@ -57,6 +62,10 @@ Deno.serve(async (request: Request) => {
     if (!['GK', 'DF', 'MF', 'FW'].includes(position)) {
       return Response.json({ error: 'Invalid player position.' }, { status: 400, headers: corsHeaders });
     }
+    if (!hasValidAttributes) {
+      return Response.json({ error: 'Enter whole-number player ratings from 0 to 100.' }, { status: 400, headers: corsHeaders });
+    }
+    const overallRating = Math.round(attributeKeys.reduce((total, key) => total + attributes[key], 0) / attributeKeys.length);
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
@@ -78,6 +87,8 @@ Deno.serve(async (request: Request) => {
         role,
         position,
         age: Number(body.age) || 24,
+        overall_rating: overallRating,
+        attributes,
       })
       .select('*')
       .single();

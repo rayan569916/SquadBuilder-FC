@@ -230,7 +230,7 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
                       : 'text-secondary bg-[#080a14]/90 border-[rgba(186,215,247,0.3)]'
                   }`}
                 >
-                  {player?.overall_rating || 88}
+                  {player?.overall_rating ?? '—'}
                 </span>
 
                 {/* Avatar Image or Initial Fallback */}

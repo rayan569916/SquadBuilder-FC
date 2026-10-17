@@ -1,4 +1,4 @@
-import { Match, MatchEvent, MatchLineup, MatchRosterEntry, MotmVote, Profile } from '../types/database';
+import { Match, MatchEvent, MatchLineup, MatchRosterEntry, MotmVote, PlayerAttributes, Profile } from '../types/database';
 import { requireSupabase } from './supabaseClient';
 
 export interface MatchDetail {
@@ -60,12 +60,19 @@ export const api = {
     return withAvatarUrl(data as Profile);
   },
 
-  async updateProfileRole(id: string, role: Profile['role']): Promise<void> {
-    const { error } = await requireSupabase().rpc('set_profile_role', {
-      target_profile_id: id,
-      target_role: role,
-    });
+  async updateManagedProfile(data: {
+    profile_id: string;
+    name: string;
+    email: string;
+    password?: string;
+    role: Profile['role'];
+    position: Profile['position'];
+    attributes: PlayerAttributes;
+  }): Promise<Profile> {
+    const { data: result, error } = await requireSupabase().functions.invoke('admin-update-user', { body: data });
     if (error) throw error;
+    if (!result?.profile) throw new Error(result?.error || 'Unable to update account.');
+    return withAvatarUrl(result.profile as Profile);
   },
 
   async createProfile(data: {
@@ -75,6 +82,7 @@ export const api = {
     role: Profile['role'];
     position: Profile['position'];
     age: number;
+    attributes: PlayerAttributes;
   }): Promise<Profile> {
     const { data: result, error } = await requireSupabase().functions.invoke('admin-create-user', { body: data });
     if (error) throw error;

@@ -164,38 +164,46 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
   if (!isManager && !isAdmin) return <section className="p-6 text-sm text-rose-300">Manager or admin access is required to create a match.</section>;
 
   return (
-    <div className="space-y-6 px-4 py-6 sm:px-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">Match setup</p>
-        <h1 className="mt-2 text-2xl font-bold text-white">Create a match</h1>
-        <p className="mt-1 text-sm text-slate-400">Set the fixture, choose who is available, then draw the teams.</p>
+    <div className="space-y-5 px-4 py-5 sm:px-6 sm:py-7">
+      <header className="text-center">
+        <p className="mx-auto inline-flex rounded-full border border-sky-200/15 bg-sky-200/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-sky-200">Matchweek · Squad Lab</p>
+        <h1 className="mt-2 font-display text-2xl font-semibold text-white">Team Balancer</h1>
+        <p className="mt-1 text-xs text-slate-400">ELO-driven fair split for the upcoming match</p>
       </header>
 
-      <section className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2">
-        <label className="text-sm text-slate-300">Team A name<input value={teamAName} onChange={(event) => setTeamAName(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
-        <label className="text-sm text-slate-300">Team B name<input value={teamBName} onChange={(event) => setTeamBName(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
-        <label className="text-sm text-slate-300">Team A manager<select value={managerAId} onChange={(event) => setManagerAId(event.target.value)} disabled={!isAdmin} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white disabled:opacity-70">{managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}</select></label>
-        <label className="text-sm text-slate-300">Team B manager<select value={managerBId} onChange={(event) => setManagerBId(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white">{managers.filter((manager) => isAdmin || manager.id !== currentUser?.id).map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}</select></label>
-        <label className="text-sm text-slate-300"><span className="flex items-center gap-1.5"><CalendarClock size={15} /> Date and time</span><input required type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
-        <label className="text-sm text-slate-300"><span className="flex items-center gap-1.5"><MapPin size={15} /> Venue</span><input required value={venue} onChange={(event) => setVenue(event.target.value)} placeholder="Turf venue" className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
-        <fieldset className="sm:col-span-2">
-          <legend className="mb-2 text-sm text-slate-300">Match type</legend>
-          <div className="flex flex-wrap gap-2">
-            {(['5s', '6s', '7s', 'custom'] as MatchFormat[]).map((value) => <button type="button" key={value} onClick={() => { setFormat(value); setTeamAIds([]); setTeamBIds([]); }} aria-pressed={format === value} className={`rounded-lg border px-4 py-2 text-sm ${format === value ? 'border-emerald-300 bg-emerald-300/10 text-emerald-200' : 'border-white/10 text-slate-300'}`}>{value === 'custom' ? 'Other' : value}</button>)}
-          </div>
-        </fieldset>
-        {format === 'custom' && <label className="text-sm text-slate-300">Players per team<input type="number" min={1} max={30} value={customPlayers} onChange={(event) => { setCustomPlayers(Number(event.target.value)); setTeamAIds([]); setTeamBIds([]); }} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>}
+      <fieldset>
+        <legend className="sr-only">Match format</legend>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {(['5s', '7s', '11s', 'custom'] as const).map((value) => {
+            const selected = value === '11s' ? format === 'custom' && customPlayers === 11 : value === 'custom' ? format === 'custom' && customPlayers !== 11 : format === value;
+            return <button type="button" key={value} onClick={() => { if (value === '11s') { setFormat('custom'); setCustomPlayers(11); } else if (value === 'custom') { setFormat('custom'); if (customPlayers === 11) setCustomPlayers(8); } else setFormat(value); setTeamAIds([]); setTeamBIds([]); }} aria-pressed={selected} className={`shrink-0 rounded-full border px-4 py-2.5 text-xs ${selected ? 'border-primary/40 bg-primary/15 text-primary shadow-[0_0_16px_rgba(112,66,248,0.22)]' : 'border-white/[0.08] bg-white/[0.03] text-slate-300'}`}>{value === '11s' ? '11s Full Pitch' : value === 'custom' ? 'Custom' : `${value} League`}</button>;
+          })}
+        </div>
+      </fieldset>
+
+      <section className="grid grid-cols-2 gap-3">
+        {[{ label: 'Home', name: teamAName, setName: setTeamAName, managerId: managerAId, setManager: setManagerAId, team: 'A' as const }, { label: 'Away', name: teamBName, setName: setTeamBName, managerId: managerBId, setManager: setManagerBId, team: 'B' as const }].map((side) => <div key={side.team} className="glass-card min-w-0 rounded-2xl p-3">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-sky-200">{side.label}</p>
+          <input aria-label={`${side.label} team name`} value={side.name} onChange={(event) => side.setName(event.target.value)} className="mt-2 w-full min-w-0 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+          <select aria-label={`${side.label} manager`} value={side.managerId} onChange={(event) => side.setManager(event.target.value)} disabled={side.team === 'A' && !isAdmin} className="mt-2 w-full min-w-0 rounded-lg border border-white/[0.08] bg-[#080a10]/70 px-2 py-2 text-[10px] text-slate-300 disabled:opacity-70">{managers.filter((manager) => side.team === 'A' ? isAdmin || manager.id === currentUser?.id : isAdmin || manager.id !== currentUser?.id).map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}</select>
+        </div>)}
       </section>
 
-      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+      <section className="glass-card grid gap-3 rounded-2xl p-4 sm:grid-cols-2">
+        <label className="text-xs text-slate-300"><span className="flex items-center gap-1.5"><CalendarClock size={14} className="text-sky-200" /> Date and time</span><input required type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} className="mt-2 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-xs text-white" /></label>
+        <label className="text-xs text-slate-300"><span className="flex items-center gap-1.5"><MapPin size={14} className="text-sky-200" /> Venue</span><input required value={venue} onChange={(event) => setVenue(event.target.value)} placeholder="Turf venue" className="mt-2 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-xs text-white" /></label>
+        {format === 'custom' && customPlayers !== 11 && <label className="text-xs text-slate-300 sm:col-span-2">Players per team<input type="number" min={1} max={30} value={customPlayers} onChange={(event) => { setCustomPlayers(Number(event.target.value)); setTeamAIds([]); setTeamBIds([]); }} className="mt-2 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>}
+      </section>
+
+      <section className="glass-card rounded-2xl p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="flex items-center gap-2 font-semibold text-white"><Users size={17} /> Available players</h2><p className="mt-1 text-xs text-slate-400">Select exactly {teamSize * 2} players ({teamSize} per team). {selectedIds.length} selected.</p></div>
-          <button type="button" onClick={() => { setSelectedIds(profiles.map((profile) => profile.id)); setTeamAIds([]); setTeamBIds([]); }} className="text-sm text-emerald-300 hover:text-emerald-200">Select all</button>
+          <div><h2 className="flex items-center gap-2 font-semibold text-white"><Users size={17} className="text-sky-200" /> Available players</h2><p className="mt-1 text-xs text-slate-400">Select {teamSize * 2} players · {selectedIds.length} selected</p></div>
+          <button type="button" onClick={() => { setSelectedIds(profiles.map((profile) => profile.id)); setTeamAIds([]); setTeamBIds([]); }} className="text-xs text-sky-200 hover:text-white">Select all</button>
         </div>
         {loadingProfiles ? <LoaderCircle className="animate-spin text-slate-400" /> : (
           <div className="grid gap-2 sm:grid-cols-2">
-            {profiles.map((profile) => <label key={profile.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-[#090b11] p-3">
-              <input type="checkbox" checked={selectedIds.includes(profile.id)} onChange={() => togglePlayer(profile.id)} className="h-4 w-4 accent-emerald-400" />
+            {profiles.map((profile) => <label key={profile.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.07] bg-[#090b11]/70 p-3">
+              <input type="checkbox" checked={selectedIds.includes(profile.id)} onChange={() => togglePlayer(profile.id)} className="h-4 w-4 accent-primary-container" />
               <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-800 text-xs font-semibold text-white">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.name.slice(0, 2).toUpperCase()}</span>
               <span className="min-w-0 flex-1"><span className="block truncate text-sm text-white">{profile.name}</span><span className="text-xs text-slate-400">{profile.position} · {profile.overall_rating} rating</span></span>
             </label>)}
@@ -203,10 +211,10 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
         )}
       </section>
 
-      <button type="button" onClick={randomizeTeams} disabled={!drawReady} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 font-semibold text-[#07110f] disabled:cursor-not-allowed disabled:opacity-50"><Shuffle size={18} /> Randomly draw teams</button>
+      <button type="button" onClick={randomizeTeams} disabled={!drawReady} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-container px-4 font-semibold text-white shadow-[0_0_24px_rgba(112,66,248,0.35)] disabled:cursor-not-allowed disabled:opacity-50"><Shuffle size={18} /> Randomize &amp; Balance</button>
 
       {assignmentsReady && <section className="grid gap-4 md:grid-cols-2">
-        {([{ key: 'A', name: teamAName, set: setTeamAName, ids: teamAIds }, { key: 'B', name: teamBName, set: setTeamBName, ids: teamBIds }] as const).map((team) => <div key={team.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        {([{ key: 'A', name: teamAName, set: setTeamAName, ids: teamAIds }, { key: 'B', name: teamBName, set: setTeamBName, ids: teamBIds }] as const).map((team) => <div key={team.key} className="glass-card rounded-2xl p-4">
           <h2 className="mb-3 font-semibold text-white">{team.name} <span className="text-xs text-slate-400">{team.ids.length}/{teamSize}</span></h2>
           <ul className="space-y-2">{team.ids.map((playerId) => {
             const player = profiles.find((item) => item.id === playerId);
@@ -215,7 +223,7 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
         </div>)}</section>}
 
       {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-      <button type="button" onClick={() => void saveMatch()} disabled={saving || !assignmentsReady} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/10 px-4 font-semibold text-white disabled:opacity-50">{saving && <LoaderCircle size={17} className="animate-spin" />}Create match</button>
+      <button type="button" onClick={() => void saveMatch()} disabled={saving || !assignmentsReady} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 font-semibold text-white disabled:opacity-50">{saving && <LoaderCircle size={17} className="animate-spin" />}Save &amp; Invite</button>
     </div>
   );
 };

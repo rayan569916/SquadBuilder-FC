@@ -46,6 +46,14 @@ export const MatchHistoryScreen: React.FC<MatchHistoryScreenProps> = ({ matchId,
   };
 
   const filteredMatches = matches.filter((match) => filter === 'all' || match.status === filter);
+  const goalTrend = matches.filter((match) => match.status === 'completed')
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .slice(-8)
+    .map((match) => match.team_a_score + match.team_b_score);
+  const averageGoals = goalTrend.length ? (goalTrend.reduce((sum, goals) => sum + goals, 0) / goalTrend.length).toFixed(1) : '0.0';
+  const maxGoals = Math.max(1, ...goalTrend);
+  const trendPoints = goalTrend.map((goals, index) => `${goalTrend.length === 1 ? 50 : (index / (goalTrend.length - 1)) * 100},${88 - (goals / maxGoals) * 66}`).join(' ');
+  const form = matches.filter((match) => match.status === 'completed').slice(0, 5).map((match) => match.team_a_score === match.team_b_score ? 'D' : match.team_a_score > match.team_b_score ? 'W' : 'L');
   const selectedMatch = selected?.match;
   const canRecordResult = Boolean(selectedMatch && currentUser && (isAdmin || selectedMatch.manager_a_id === currentUser.id || selectedMatch.manager_b_id === currentUser.id));
 
@@ -59,22 +67,28 @@ export const MatchHistoryScreen: React.FC<MatchHistoryScreenProps> = ({ matchId,
   };
 
   return (
-    <div className="space-y-6 px-4 py-6 sm:px-6">
+    <div className="space-y-5 px-4 py-5 sm:px-6 sm:py-7">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">Fixtures and results</p><h1 className="mt-2 text-2xl font-bold text-white">Match history</h1><p className="mt-1 text-sm text-slate-400">Every saved roster, formation, event, score, and poll result.</p></div>
-        {onLogNewMatch && <button onClick={onLogNewMatch} className="rounded-lg bg-emerald-400 px-3 py-2 text-sm font-semibold text-[#07110f]">Create match</button>}
+        <div><p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sky-200">Squad fixtures &amp; results</p><h1 className="mt-1 font-display text-2xl font-semibold text-white">Match History</h1><p className="mt-1 text-xs text-slate-400">Precision archive · telemetry · match sheets</p></div>
+        {onLogNewMatch && <button onClick={onLogNewMatch} className="rounded-full bg-primary-container px-4 py-2 text-xs font-semibold text-white shadow-[0_0_18px_rgba(112,66,248,0.3)]">Log new match</button>}
       </header>
 
-      <div className="flex gap-2" role="tablist" aria-label="Filter matches">
-        {(['all', 'upcoming', 'completed'] as const).map((value) => <button key={value} role="tab" aria-selected={filter === value} onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 text-sm capitalize ${filter === value ? 'border-emerald-300/40 bg-emerald-300/10 text-emerald-200' : 'border-white/10 text-slate-400'}`}>{value}</button>)}
+      <div className="flex gap-2 overflow-x-auto rounded-full bg-white/[0.035] p-1" role="tablist" aria-label="Filter matches">
+        {(['all', 'upcoming', 'completed'] as const).map((value) => <button key={value} role="tab" aria-selected={filter === value} onClick={() => setFilter(value)} className={`shrink-0 rounded-full px-4 py-2 text-xs capitalize ${filter === value ? 'bg-primary-container text-white shadow-[0_0_16px_rgba(112,66,248,0.28)]' : 'text-slate-400 hover:text-white'}`}>{value === 'all' ? 'All Matches' : value === 'upcoming' ? 'Upcoming' : 'Results'}</button>)}
       </div>
+
+      <section className="rounded-2xl border border-white/[0.07] bg-surface-container-low/70 p-4">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">Goal trend · last 8 results</p><p className="mt-1 font-display text-xl font-semibold text-white">{averageGoals}<span className="ml-1 text-[10px] font-normal text-slate-400">goals / match</span></p></div><span className="rounded-full bg-sky-200/10 px-2.5 py-1 text-[9px] text-sky-200">{goalTrend.length} recorded</span></div>
+        <div className="mt-3 h-20 w-full overflow-hidden rounded-lg bg-[#080a10]/40 p-1"><svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={`Combined goals in the last ${goalTrend.length} completed matches`}><defs><linearGradient id="goalTrendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity="0.34" /><stop offset="100%" stopColor="#10b981" stopOpacity="0" /></linearGradient></defs>{trendPoints && <><polygon points={`0,100 ${trendPoints} 100,100`} fill="url(#goalTrendFill)" /><polyline points={trendPoints} fill="none" stroke="#34d399" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />{goalTrend.map((goals, index) => <circle key={`${goals}-${index}`} cx={goalTrend.length === 1 ? 50 : (index / (goalTrend.length - 1)) * 100} cy={88 - (goals / maxGoals) * 66} r="1.5" fill="#a2caf9" />)}</>}</svg></div>
+        <div className="mt-3 flex items-center justify-between"><div className="flex gap-1">{form.length ? form.map((result, index) => <span key={`${result}-${index}`} className={`grid h-5 w-5 place-items-center rounded text-[8px] font-bold ${result === 'W' ? 'bg-emerald-400/15 text-emerald-200' : result === 'D' ? 'bg-amber-300/15 text-amber-200' : 'bg-rose-400/15 text-rose-200'}`}>{result}</span>) : <span className="text-[9px] text-slate-500">No results yet</span>}</div><span className="text-[9px] text-slate-400">Team A form</span></div>
+      </section>
 
       {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
       {loading ? <div className="grid min-h-40 place-items-center"><LoaderCircle className="animate-spin text-slate-300" /></div> : (
         <div className="space-y-2">
-          {filteredMatches.map((match) => <button key={match.id} onClick={() => void openMatch(match.id)} className="grid w-full grid-cols-[1fr_auto] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left hover:bg-white/[0.06]">
-            <span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{match.team_a_name} <span className="text-slate-500">vs</span> {match.team_b_name}</span><span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400"><span className="inline-flex items-center gap-1"><CalendarDays size={13} />{new Date(match.date).toLocaleString()}</span><span className="inline-flex items-center gap-1"><MapPin size={13} />{match.venue}</span><span>{match.format}{match.format === 'custom' ? ` · ${match.custom_players_per_team} a side` : ''}</span></span></span>
-            <span className="text-right"><span className="block text-lg font-bold tabular-nums text-white">{match.status === 'completed' ? `${match.team_a_score} - ${match.team_b_score}` : 'Upcoming'}</span><span className="text-[10px] uppercase tracking-wide text-emerald-300">{match.status}</span></span>
+          {filteredMatches.map((match) => <button key={match.id} onClick={() => void openMatch(match.id)} className="grid w-full grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-white/[0.07] bg-surface-container-low/80 p-4 text-left hover:bg-white/[0.06]">
+            <span className="min-w-0"><span className="mb-1 flex flex-wrap items-center gap-1.5 text-[9px] text-slate-400"><CalendarDays size={11} />{new Date(match.date).toLocaleDateString()}<span>·</span><span className="rounded bg-white/[0.06] px-1.5 py-0.5">{match.format}</span></span><span className="block truncate text-sm font-semibold text-white">{match.team_a_name} <span className="text-slate-500">vs</span> {match.team_b_name}</span><span className="mt-1 flex items-center gap-1 truncate text-[10px] text-slate-400"><MapPin size={11} />{match.venue || 'Venue not set'}</span></span>
+            <span className="text-right"><span className={`block font-display text-xl font-semibold tabular-nums ${match.status === 'completed' ? 'text-white' : 'text-sky-200'}`}>{match.status === 'completed' ? `${match.team_a_score} – ${match.team_b_score}` : 'Upcoming'}</span><span className={`text-[9px] uppercase tracking-wide ${match.status === 'completed' ? 'text-emerald-200' : 'text-sky-200'}`}>{match.status}</span></span>
           </button>)}
           {filteredMatches.length === 0 && <p className="rounded-xl border border-white/10 p-5 text-sm text-slate-400">No matches in this view.</p>}
         </div>
