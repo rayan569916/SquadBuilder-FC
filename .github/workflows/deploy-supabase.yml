@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'supabase/**'
+      - '.github/workflows/deploy-supabase.yml'
   workflow_dispatch: # <-- This adds the manual "Run workflow" button in GitHub
 
 jobs:
@@ -31,7 +32,9 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy Edge Functions
-        run: supabase functions deploy admin-create-user
+        run: |
+          supabase functions deploy admin-create-user
+          supabase functions deploy admin-update-user
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
