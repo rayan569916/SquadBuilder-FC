@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sora: 'Sora', sans-serif;
+    --font-geist: 'Geist', sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-geist);
+    background-color: #05060f;
+    color: #e2e1f0;
+  }
+  
+  h1, h2, h3, h4, .font-display, .font-headline {
+    font-family: var(--font-sora);
+  }
+}
+
+.ambient-blueprint {
+  background-image: 
+    linear-gradient(to right, rgba(162, 202, 249, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(162, 202, 249, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.ambient-halo {
+  background: radial-gradient(circle at 50% 0%, rgba(112, 66, 248, 0.22) 0%, rgba(28, 73, 114, 0.14) 40%, transparent 70%);
+}
+
+.skywash-text {
+  background: linear-gradient(180deg, #ffffff 0%, #d8ecf8 45%, #98c0ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-card {
+  background: rgba(26, 27, 37, 0.72);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(162, 202, 249, 0.12);
+  box-shadow: inset 0 1px 1px 0 rgba(216, 236, 248, 0.2), 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+.glass-nav {
+  background: rgba(8, 10, 18, 0.88);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 1px 1px 0 rgba(216, 236, 248, 0.12), 0 -8px 24px 0 rgba(0, 0, 0, 0.6);
+}
+
+.glass-pill {
+  background: rgba(186, 214, 247, 0.06);
+  box-shadow: inset 0 1px 1px rgba(216, 236, 248, 0.15);
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(5, 6, 15, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(162, 202, 249, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(162, 202, 249, 0.4);
+}
