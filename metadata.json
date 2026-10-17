@@ -1,0 +1,6 @@
+{
+  "name": "SquadBuilder FC",
+  "description": "Tactics Lab & Match Engine with role-based access control, team balancer, dynamic formation pitch builder, match stats, and leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
