@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayerAttributes } from '../types/database';
+import { GoalkeeperAttributes, PlayerAttributes } from '../types/database';
 
 interface RadarChartProps {
   attributes?: PlayerAttributes;
@@ -194,6 +194,73 @@ export const RadarChart: React.FC<RadarChartProps> = ({
         >
           <tspan fill={color}>{attributes.shooting}</tspan> SHOOT
         </text>
+      </svg>
+    </div>
+  );
+};
+
+interface GoalkeeperRadarChartProps {
+  attributes: GoalkeeperAttributes;
+  size?: number;
+  className?: string;
+  color?: string;
+}
+
+const goalkeeperAxes: { key: keyof GoalkeeperAttributes; label: string; angle: number }[] = [
+  { key: 'reflexes', label: 'REFLEXES', angle: -90 },
+  { key: 'diving', label: 'DIVING', angle: -30 },
+  { key: 'handling', label: 'HANDLING', angle: 30 },
+  { key: 'positioning', label: 'POSITION', angle: 90 },
+  { key: 'speed', label: 'SPEED', angle: 150 },
+  { key: 'kicking', label: 'KICKING', angle: 210 },
+];
+
+export const GoalkeeperRadarChart: React.FC<GoalkeeperRadarChartProps> = ({
+  attributes,
+  size = 300,
+  className = '',
+  color = '#10b981',
+}) => {
+  const centerX = 160;
+  const centerY = 132;
+  const maxRadius = 78;
+  const getPoint = (value: number, angle: number, radius = maxRadius) => {
+    const radians = (angle * Math.PI) / 180;
+    const scaledRadius = (Math.max(0, Math.min(100, value)) / 100) * radius;
+    return {
+      x: centerX + scaledRadius * Math.cos(radians),
+      y: centerY + scaledRadius * Math.sin(radians),
+    };
+  };
+  const points = goalkeeperAxes.map(({ key, angle }) => getPoint(attributes[key], angle));
+  const polygon = points.map(({ x, y }) => `${x},${y}`).join(' ');
+  const ringPoints = (percent: number) => goalkeeperAxes.map(({ angle }) => {
+    const point = getPoint(percent, angle);
+    return `${point.x},${point.y}`;
+  }).join(' ');
+
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      <svg viewBox="0 0 320 264" width={size} height={size * 0.825} className="max-w-full overflow-visible select-none" role="img" aria-label="Goalkeeper attribute radar">
+        <defs>
+          <radialGradient id="goalkeeperRadarFill" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.38" />
+            <stop offset="65%" stopColor={color} stopOpacity="0.15" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </radialGradient>
+        </defs>
+        {[25, 50, 75, 100].map((ring) => <polygon key={ring} points={ringPoints(ring)} fill="none" stroke={`rgba(186,215,247,${ring === 100 ? '0.24' : '0.14'})`} strokeWidth="1" strokeDasharray={ring === 25 || ring === 75 ? '3 3' : undefined} />)}
+        {goalkeeperAxes.map(({ angle, key }) => {
+          const point = getPoint(100, angle);
+          return <line key={key} x1={centerX} y1={centerY} x2={point.x} y2={point.y} stroke="rgba(186,215,247,0.18)" strokeWidth="1" />;
+        })}
+        <polygon points={polygon} fill="url(#goalkeeperRadarFill)" stroke={color} strokeWidth="2.5" />
+        {points.map((point, index) => <circle key={goalkeeperAxes[index].key} cx={point.x} cy={point.y} r="3.5" fill="#d8ecf8" stroke={color} strokeWidth="2" />)}
+        {goalkeeperAxes.map(({ angle, key, label }) => {
+          const point = getPoint(100, angle, maxRadius + 20);
+          const anchor = point.x < centerX - 12 ? 'end' : point.x > centerX + 12 ? 'start' : 'middle';
+          return <text key={key} x={point.x} y={point.y + 3} textAnchor={anchor} fill="#d8ecf8" fontSize="9" fontWeight="600" className="font-mono">{label} <tspan fill={color}>{attributes[key]}</tspan></text>;
+        })}
       </svg>
     </div>
   );

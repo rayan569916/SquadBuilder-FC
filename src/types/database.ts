@@ -5,12 +5,22 @@ export type MatchStatus = 'upcoming' | 'completed';
 export type MatchTeam = 'A' | 'B';
 export type MatchEventType = 'goal' | 'penalty_goal' | 'freekick_goal' | 'penalty_missed' | 'penalty_save' | 'save' | 'tackle';
 
+export interface GoalkeeperAttributes {
+  diving: number;
+  handling: number;
+  kicking: number;
+  reflexes: number;
+  speed: number;
+  positioning: number;
+}
+
 export interface PlayerAttributes {
   impact: number;      // 0-100 (e.g. 98)
   shooting: number;    // 0-100 (e.g. 96)
   defense: number;     // 0-100 (e.g. 88)
   physical: number;    // 0-100 (e.g. 94)
   passing: number;     // 0-100 (e.g. 94)
+  goalkeeping?: GoalkeeperAttributes;
 }
 
 export interface InjuryRecord {

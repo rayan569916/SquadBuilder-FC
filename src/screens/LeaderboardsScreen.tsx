@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Award, Gauge, LoaderCircle, Shield, Target, Trophy, TrendingUp } from 'lucide-react';
 import { api } from '../lib/api';
-import { playerAttributeFields } from '../lib/playerRatings';
-import { RadarChart } from '../components/RadarChart';
+import { goalkeeperAttributeFields, playerAttributeFields } from '../lib/playerRatings';
+import { GoalkeeperRadarChart, RadarChart } from '../components/RadarChart';
 import { Profile } from '../types/database';
+import { GoalkeeperAttributeKey, PlayerAttributeKey } from '../lib/playerRatings';
 
 interface LeaderboardsScreenProps {
   onSelectPlayer?: (playerId: string) => void;
 }
 
-type Criterion = 'overall' | 'impact' | 'shooting' | 'passing' | 'defense' | 'physical' | 'goals' | 'assists' | 'winrate' | 'motm';
+type Criterion = 'overall' | PlayerAttributeKey | 'diving' | 'handling' | 'kicking' | 'reflexes' | 'keeper_speed' | 'positioning' | 'goals' | 'assists' | 'winrate' | 'motm';
 
 const criteria: { id: Criterion; label: string; Icon: typeof Target }[] = [
   { id: 'overall', label: 'Player rating', Icon: Gauge },
@@ -18,11 +19,26 @@ const criteria: { id: Criterion; label: string; Icon: typeof Target }[] = [
   { id: 'passing', label: 'Passing', Icon: TrendingUp },
   { id: 'defense', label: 'Defense', Icon: Shield },
   { id: 'physical', label: 'Physical', Icon: Activity },
+  { id: 'diving', label: 'Diving', Icon: Shield },
+  { id: 'handling', label: 'Handling', Icon: Shield },
+  { id: 'kicking', label: 'Kicking', Icon: Target },
+  { id: 'reflexes', label: 'Reflexes', Icon: Activity },
+  { id: 'keeper_speed', label: 'Keeper speed', Icon: TrendingUp },
+  { id: 'positioning', label: 'Positioning', Icon: Shield },
   { id: 'goals', label: 'Goals', Icon: Target },
   { id: 'assists', label: 'Assists', Icon: Award },
   { id: 'winrate', label: 'Win rate', Icon: TrendingUp },
   { id: 'motm', label: 'MOTM', Icon: Trophy },
 ];
+
+const goalkeeperCriterionKeys: Partial<Record<Criterion, GoalkeeperAttributeKey>> = {
+  diving: 'diving',
+  handling: 'handling',
+  kicking: 'kicking',
+  reflexes: 'reflexes',
+  keeper_speed: 'speed',
+  positioning: 'positioning',
+};
 
 export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelectPlayer }) => {
   const [view, setView] = useState<'players' | 'managers'>('players');
@@ -38,11 +54,18 @@ export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelect
   }, []);
 
   const ranked = useMemo(() => [...profiles]
-    .filter((profile) => view === 'players' || profile.role === 'manager' || profile.role === 'admin')
+    .filter((profile) => view === 'players'
+      ? !Object.values(goalkeeperCriterionKeys).includes(criterion as GoalkeeperAttributeKey) || profile.position === 'GK'
+      : profile.role === 'manager' || profile.role === 'admin')
     .sort((a, b) => {
       if (view === 'managers') return b.matches_won - a.matches_won || b.matches_managed - a.matches_managed;
+      if (criterion in goalkeeperCriterionKeys) {
+        const attribute = goalkeeperCriterionKeys[criterion];
+        if (!attribute) return 0;
+        return (b.attributes?.goalkeeping?.[attribute] || 0) - (a.attributes?.goalkeeping?.[attribute] || 0);
+      }
       if (['impact', 'shooting', 'passing', 'defense', 'physical'].includes(criterion)) {
-        const attribute = criterion as 'impact' | 'shooting' | 'passing' | 'defense' | 'physical';
+        const attribute = criterion as PlayerAttributeKey;
         return (b.attributes?.[attribute] || 0) - (a.attributes?.[attribute] || 0);
       }
       if (criterion === 'overall') return b.overall_rating - a.overall_rating;
@@ -56,8 +79,10 @@ export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelect
   const featuredMetric = featured && (view === 'managers'
     ? `${featured.matches_won} wins`
     : criterion === 'overall' ? `${featured.overall_rating} OVR`
-      : ['impact', 'shooting', 'passing', 'defense', 'physical'].includes(criterion)
-        ? `${featured.attributes?.[criterion as 'impact' | 'shooting' | 'passing' | 'defense' | 'physical'] ?? '—'} / 100`
+      : criterion in goalkeeperCriterionKeys
+        ? `${featured.attributes?.goalkeeping?.[goalkeeperCriterionKeys[criterion] as GoalkeeperAttributeKey] ?? '—'} / 100`
+        : ['impact', 'shooting', 'passing', 'defense', 'physical'].includes(criterion)
+          ? `${featured.attributes?.[criterion as PlayerAttributeKey] ?? '—'} / 100`
         : criterion === 'goals' ? `${featured.goals} goals`
       : criterion === 'assists' ? `${featured.assists} assists`
         : criterion === 'winrate' ? `${featured.win_percentage}% win rate`
@@ -71,11 +96,11 @@ export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelect
         <p className="mt-1 text-xs text-slate-400">Live club rankings · Synchronized match data</p>
       </header>
 
-      <div className="grid grid-cols-2 rounded-full bg-white/[0.05] p-1" role="tablist" aria-label="Leaderboard type">
+      <div className="grid grid-cols-2 rounded-full bg-white/5 p-1" role="tablist" aria-label="Leaderboard type">
         {(['players', 'managers'] as const).map((value) => <button key={value} role="tab" aria-selected={view === value} onClick={() => setView(value)} className={`rounded-full px-3 py-2 text-xs capitalize transition ${view === value ? 'bg-primary-container text-white shadow-[0_0_18px_rgba(112,66,248,0.35)]' : 'text-slate-400 hover:text-white'}`}>{value === 'players' ? 'Player leaderboard' : 'Manager leaderboard'}</button>)}
       </div>
 
-      {view === 'players' && <div className="flex gap-2 overflow-x-auto pb-1">{criteria.map(({ id, label, Icon }) => <button key={id} onClick={() => setCriterion(id)} aria-pressed={criterion === id} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] transition ${criterion === id ? 'border-primary/50 bg-primary/15 text-primary' : 'border-white/[0.08] bg-white/[0.03] text-slate-400'}`}><Icon size={13} />{label}</button>)}</div>}
+      {view === 'players' && <div className="flex gap-2 overflow-x-auto pb-1">{criteria.map(({ id, label, Icon }) => <button key={id} onClick={() => setCriterion(id)} aria-pressed={criterion === id} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] transition ${criterion === id ? 'border-primary/50 bg-primary/15 text-primary' : 'border-white/8 bg-white/3 text-slate-400'}`}><Icon size={13} />{label}</button>)}</div>}
       {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
       {loading ? <div className="grid min-h-40 place-items-center"><LoaderCircle className="animate-spin text-slate-300" /></div> : <>
         {featured && <button onClick={() => onSelectPlayer?.(featured.id)} className="glass-card w-full rounded-2xl p-4 text-left sm:p-5">
@@ -88,7 +113,7 @@ export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelect
           <div className="mt-4 grid grid-cols-3 rounded-xl bg-[#080a10]/55 px-2 py-3 text-center">{(view === 'players' ? [{ label: 'Goals', value: featured.goals }, { label: 'Assists', value: featured.assists }, { label: 'MOTM', value: featured.motm_count }] : [{ label: 'Wins', value: featured.matches_won }, { label: 'Managed', value: featured.matches_managed }, { label: 'Trophies', value: featured.trophies }]).map((item) => <div key={item.label}><p className="font-display text-lg font-semibold text-white">{item.value}</p><p className="text-[9px] uppercase tracking-wide text-slate-400">{item.label}</p></div>)}</div>
         </button>}
 
-        {featured && view === 'players' && <section className="glass-card rounded-2xl p-4"><div className="flex items-center justify-between"><div><h2 className="flex items-center gap-2 text-xs font-semibold text-white"><TrendingUp size={14} className="text-sky-200" />Attribute profile</h2><p className="mt-1 text-[10px] text-slate-400">{featured.name} · 0–100 ratings</p></div><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] text-primary">OVR {featured.overall_rating}</span></div><div className="mt-2 grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{featured.attributes ? <RadarChart attributes={featured.attributes} size={220} color="#10b981" className="mx-auto max-w-full" /> : <p className="py-5 text-center text-xs text-slate-400">Attribute ratings have not been entered for this player.</p>}<div className="space-y-3">{playerAttributeFields.map(({ key, label }) => { const value = featured.attributes?.[key]; return <div key={key}><div className="mb-1 flex justify-between text-[10px]"><span className="text-slate-300">{label}</span><span className="tabular-nums text-sky-200">{value ?? '—'}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-gradient-to-r from-primary-container to-sky-200" style={{ width: `${value ?? 0}%` }} /></div></div>; })}</div></div></section>}
+        {featured && view === 'players' && <section className="glass-card rounded-2xl p-4"><div className="flex items-center justify-between"><div><h2 className="flex items-center gap-2 text-xs font-semibold text-white"><TrendingUp size={14} className="text-sky-200" />{featured.position === 'GK' ? 'Goalkeeper profile' : 'Attribute profile'}</h2><p className="mt-1 text-[10px] text-slate-400">{featured.name} · 0–100 ratings</p></div><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] text-primary">OVR {featured.overall_rating}</span></div><div className="mt-2 grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{featured.position === 'GK' ? featured.attributes?.goalkeeping ? <GoalkeeperRadarChart attributes={featured.attributes.goalkeeping} size={220} color="#10b981" className="mx-auto max-w-full" /> : <p className="py-5 text-center text-xs text-slate-400">Goalkeeper ratings have not been entered for this player.</p> : featured.attributes ? <RadarChart attributes={featured.attributes} size={220} color="#10b981" className="mx-auto max-w-full" /> : <p className="py-5 text-center text-xs text-slate-400">Attribute ratings have not been entered for this player.</p>}<div className="space-y-3">{featured.position === 'GK' ? goalkeeperAttributeFields.map(({ key, label }) => { const value = featured.attributes?.goalkeeping?.[key]; return <div key={key}><div className="mb-1 flex justify-between text-[10px]"><span className="text-slate-300">{label}</span><span className="tabular-nums text-emerald-200">{value ?? '—'}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-linear-to-r from-emerald-600 to-emerald-200" style={{ width: `${value ?? 0}%` }} /></div></div>; }) : playerAttributeFields.map(({ key, label }) => { const value = featured.attributes?.[key]; return <div key={key}><div className="mb-1 flex justify-between text-[10px]"><span className="text-slate-300">{label}</span><span className="tabular-nums text-sky-200">{value ?? '—'}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-linear-to-r from-primary-container to-sky-200" style={{ width: `${value ?? 0}%` }} /></div></div>; })}</div></div></section>}
 
         <section>
           <div className="mb-2 flex items-center justify-between px-1"><h2 className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-300">Ranked {view}</h2><span className="text-[10px] text-sky-200">Sort: {view === 'managers' ? 'Wins' : criteria.find((item) => item.id === criterion)?.label}</span></div>
@@ -98,14 +123,16 @@ export const LeaderboardsScreen: React.FC<LeaderboardsScreenProps> = ({ onSelect
               const metric = view === 'managers'
                 ? `${profile.matches_won} wins · ${profile.matches_managed} managed`
                 : criterion === 'overall' ? `${profile.overall_rating} OVR`
-                  : ['impact', 'shooting', 'passing', 'defense', 'physical'].includes(criterion)
-                    ? `${profile.attributes?.[criterion as 'impact' | 'shooting' | 'passing' | 'defense' | 'physical'] ?? '—'} / 100`
+                  : criterion in goalkeeperCriterionKeys
+                    ? `${profile.attributes?.goalkeeping?.[goalkeeperCriterionKeys[criterion] as GoalkeeperAttributeKey] ?? '—'} / 100`
+                    : ['impact', 'shooting', 'passing', 'defense', 'physical'].includes(criterion)
+                      ? `${profile.attributes?.[criterion as PlayerAttributeKey] ?? '—'} / 100`
                   : criterion === 'goals' ? `${profile.goals} goals`
                   : criterion === 'assists' ? `${profile.assists} assists`
                     : criterion === 'winrate' ? `${profile.win_percentage}%`
                       : `${profile.motm_count} MOTM`;
-              return <button key={profile.id} onClick={() => onSelectPlayer?.(profile.id)} className="grid w-full grid-cols-[2rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/[0.07] bg-surface-container-low/80 p-3 text-left hover:bg-white/[0.06]">
-                <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold ${rank < 4 ? 'bg-sky-200/10 text-sky-100' : 'bg-white/[0.06] text-slate-400'}`}>{rank}</span>
+              return <button key={profile.id} onClick={() => onSelectPlayer?.(profile.id)} className="grid w-full grid-cols-[2rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/7 bg-surface-container-low/80 p-3 text-left hover:bg-white/6">
+                <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold ${rank < 4 ? 'bg-sky-200/10 text-sky-100' : 'bg-white/6 text-slate-400'}`}>{rank}</span>
                 <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-white/10 bg-slate-800 text-xs font-semibold text-white">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.name.slice(0, 2).toUpperCase()}</span>
                 <span className="min-w-0"><span className="block truncate text-xs font-semibold text-white">{profile.name}</span><span className="block truncate text-[10px] text-slate-400">{profile.club || profile.position}</span></span>
                 <span className="text-right"><span className="block text-xs font-semibold text-sky-200">{metric}</span><span className="text-[9px] text-slate-500">{profile.overall_rating} OVR</span></span>

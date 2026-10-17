@@ -49,8 +49,12 @@ Deno.serve(async (request: Request) => {
     const position = body.position;
     const attributes = body.attributes;
     const attributeKeys = ['impact', 'shooting', 'passing', 'defense', 'physical'] as const;
+    const goalkeeperKeys = ['diving', 'handling', 'kicking', 'reflexes', 'speed', 'positioning'] as const;
     const hasValidAttributes = attributes && attributeKeys.every((key) =>
       typeof attributes[key] === 'number' && Number.isInteger(attributes[key]) && attributes[key] >= 0 && attributes[key] <= 100,
+    );
+    const hasValidGoalkeeping = attributes?.goalkeeping && goalkeeperKeys.every((key) =>
+      typeof attributes.goalkeeping[key] === 'number' && Number.isInteger(attributes.goalkeeping[key]) && attributes.goalkeeping[key] >= 0 && attributes.goalkeeping[key] <= 100,
     );
 
     if (!email || !name || password.length < 10) {
@@ -62,10 +66,11 @@ Deno.serve(async (request: Request) => {
     if (!['GK', 'DF', 'MF', 'FW'].includes(position)) {
       return Response.json({ error: 'Invalid player position.' }, { status: 400, headers: corsHeaders });
     }
-    if (!hasValidAttributes) {
-      return Response.json({ error: 'Enter whole-number player ratings from 0 to 100.' }, { status: 400, headers: corsHeaders });
+    if (!hasValidAttributes || (position === 'GK' && !hasValidGoalkeeping)) {
+      return Response.json({ error: position === 'GK' ? 'Enter all six goalkeeper ratings as whole numbers from 0 to 100.' : 'Enter whole-number player ratings from 0 to 100.' }, { status: 400, headers: corsHeaders });
     }
-    const overallRating = Math.round(attributeKeys.reduce((total, key) => total + attributes[key], 0) / attributeKeys.length);
+    const ratingKeys = position === 'GK' ? goalkeeperKeys : attributeKeys;
+    const overallRating = Math.round(ratingKeys.reduce((total, key) => total + (position === 'GK' ? attributes.goalkeeping[key] : attributes[key]), 0) / ratingKeys.length);
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,

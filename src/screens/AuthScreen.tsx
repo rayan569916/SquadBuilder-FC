@@ -56,14 +56,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <span className="h-px w-12 bg-gradient-to-l from-transparent to-primary/50" />
         </div>
         <h1 className="skywash-text font-display text-3xl font-semibold sm:text-4xl">SQUADBUILDER FC</h1>
-        <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-sky-100/70 sm:text-sm">Tactics Lab &amp; Match Engine</p>
+        {/* <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-sky-100/70 sm:text-sm">Tactics Lab &amp; Match Engine</p> */}
       </div>
 
       <section className="glass-card w-full max-w-xl rounded-2xl bg-[#0c0e17]/90 p-5 sm:p-8">
         <div className="mb-6 flex items-center justify-between border-b border-white/[0.08] pb-4">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary-container/20 text-primary"><ShieldCheck size={21} aria-hidden="true" /></span>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">SquadBuilder FC</p><h2 className="text-lg font-semibold text-white">Sign in to your squad</h2></div>
+            <div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">SquadBuilder FC</p><h2 className="text-lg font-semibold text-white">Sign in</h2></div>
           </div>
           <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-on-primary"><ShieldCheck size={19} aria-hidden="true" /></span>
         </div>
@@ -73,10 +73,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
           <button type="button" disabled title="Account creation is not available" className="px-3 py-2.5 text-slate-500 disabled:cursor-not-allowed">Create Account</button>
         </div>
 
-        <div className="mb-5 flex items-center justify-between text-xs">
+        {/* <div className="mb-5 flex items-center justify-between text-xs">
           <span className="text-slate-300">Access Persona</span>
           <span className="inline-flex items-center gap-2 text-sky-200"><i className="h-2 w-2 rounded-full bg-sky-300" />Secure session</span>
-        </div>
+        </div> */}
 
         {!isSupabaseConfigured ? (
           <div role="alert" className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-100">
@@ -85,7 +85,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block text-sm text-slate-300">
-              <span className="mb-1.5 flex items-center justify-between"><span>Tactical Email / Handle</span><span className="text-xs text-sky-200">Secure sign-in</span></span>
+              <span className="mb-1.5 flex items-center justify-between"><span>Tactical Email / Handle</span></span>
               <span className="relative block">
               <AtSign size={17} className="absolute left-3 top-3.5 text-sky-200" aria-hidden="true" />
               <input
@@ -101,7 +101,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             </label>
 
             <label className="block text-sm text-slate-300">
-              <span className="mb-1.5 flex items-center justify-between"><span>Encrypted Passcode</span><span className="text-xs text-sky-200">Protected field</span></span>
+              <span className="mb-1.5 flex items-center justify-between"><span>Encrypted Passcode</span></span>
               <span className="relative mt-1.5 block">
                 <LockKeyhole size={16} className="absolute left-3 top-3.5 text-sky-200" aria-hidden="true" />
                 <input
@@ -145,15 +145,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-container px-4 py-4 font-display text-base font-semibold text-white shadow-[0_0_28px_rgba(112,66,248,0.42)] transition hover:brightness-110 disabled:opacity-60"
             >
               {isSubmitting ? <LoaderCircle size={17} className="animate-spin" /> : <LogIn size={17} />}
-              Enter Tactics Lab { !isSubmitting && <ArrowRight size={18} /> }
+              Enter { !isSubmitting && <ArrowRight size={18} /> }
             </button>
           </form>
         )}
 
-        <p className="mt-6 border-t border-white/[0.08] pt-5 text-center text-xs leading-5 text-slate-400">By connecting, you agree to the SquadBuilder FC Tactics Lab <span className="text-sky-200">Terms of Simulation</span> &amp; <span className="text-sky-200">Fair Play Protocols</span>.</p>
+        {/* <p className="mt-6 border-t border-white/[0.08] pt-5 text-center text-xs leading-5 text-slate-400">By connecting, you agree to the SquadBuilder FC Tactics Lab <span className="text-sky-200">Terms of Simulation</span> &amp; <span className="text-sky-200">Fair Play Protocols</span>.</p> */}
       </section>
 
-      <div className="mt-6 flex items-center gap-2 rounded-full bg-white/[0.04] px-4 py-2 text-xs text-slate-400"><span className="h-2 w-2 rounded-full bg-sky-200 shadow-[0_0_12px_rgba(162,202,249,0.8)]" />Match Engine online</div>
+      {/* <div className="mt-6 flex items-center gap-2 rounded-full bg-white/[0.04] px-4 py-2 text-xs text-slate-400"><span className="h-2 w-2 rounded-full bg-sky-200 shadow-[0_0_12px_rgba(162,202,249,0.8)]" />Match Engine online</div> */}
     </main>
   );
 };

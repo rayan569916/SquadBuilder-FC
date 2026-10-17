@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const attributeKeys = ['impact', 'shooting', 'passing', 'defense', 'physical'] as const;
+const goalkeeperKeys = ['diving', 'handling', 'kicking', 'reflexes', 'speed', 'positioning'] as const;
 
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') {
@@ -69,6 +70,11 @@ Deno.serve(async (request: Request) => {
     )) {
       return Response.json({ error: 'All five player ratings must be whole numbers from 0 to 100.' }, { status: 400, headers: corsHeaders });
     }
+    if (position === 'GK' && (!attributes.goalkeeping || !goalkeeperKeys.every((key) =>
+      typeof attributes.goalkeeping[key] === 'number' && Number.isInteger(attributes.goalkeeping[key]) && attributes.goalkeeping[key] >= 0 && attributes.goalkeeping[key] <= 100,
+    ))) {
+      return Response.json({ error: 'All six goalkeeper ratings must be whole numbers from 0 to 100.' }, { status: 400, headers: corsHeaders });
+    }
     if (profileId === caller.id && role !== 'admin') {
       return Response.json({ error: 'You cannot remove your own admin role.' }, { status: 400, headers: corsHeaders });
     }
@@ -82,7 +88,8 @@ Deno.serve(async (request: Request) => {
       return Response.json({ error: 'Profile not found.' }, { status: 404, headers: corsHeaders });
     }
 
-    const overallRating = Math.round(attributeKeys.reduce((total, key) => total + attributes[key], 0) / attributeKeys.length);
+    const ratingKeys = position === 'GK' ? goalkeeperKeys : attributeKeys;
+    const overallRating = Math.round(ratingKeys.reduce((total, key) => total + (position === 'GK' ? attributes.goalkeeping[key] : attributes[key]), 0) / ratingKeys.length);
     const updates = {
       name,
       email,

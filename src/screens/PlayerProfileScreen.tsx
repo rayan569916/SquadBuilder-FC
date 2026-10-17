@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowRight, Award, Camera, LoaderCircle, Medal, Shield, Target, Trophy } from 'lucide-react';
-import { RadarChart } from '../components/RadarChart';
-import { playerAttributeFields } from '../lib/playerRatings';
+import { GoalkeeperRadarChart, RadarChart } from '../components/RadarChart';
+import { goalkeeperAttributeFields, playerAttributeFields } from '../lib/playerRatings';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Profile } from '../types/database';
@@ -72,7 +72,7 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
   return (
     <div className="mx-auto max-w-md space-y-5 px-4 py-5 sm:px-6 sm:py-7">
       <section className="glass-card relative overflow-hidden rounded-2xl p-4 text-center sm:p-6">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-b from-primary/10 to-transparent" />
         <div className="relative mx-auto grid h-20 w-20 place-items-center overflow-hidden rounded-full border border-primary/40 bg-surface-container-high text-xl font-bold text-white shadow-[0_0_26px_rgba(112,66,248,0.3)]">
           {profile.avatar_url ? <img src={profile.avatar_url} alt={`${profile.name} profile`} className="h-full w-full object-cover" /> : profile.name.slice(0, 2).toUpperCase()}
           {isOwnProfile && <><button type="button" disabled={uploading} title="Upload profile photo" onClick={() => inputRef.current?.click()} className="absolute inset-x-0 bottom-0 flex h-7 items-center justify-center bg-black/70 text-white disabled:opacity-50">{uploading ? <LoaderCircle size={14} className="animate-spin" /> : <Camera size={14} />}</button><input ref={inputRef} type="file" accept="image/*" onChange={(event) => void uploadAvatar(event)} className="hidden" /></>}
@@ -91,9 +91,16 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
 
       <div className="flex items-center justify-between px-1"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">Tactical radar &amp; mastery</p><span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] text-primary">Player analytics</span></div>
       <section className="glass-card rounded-2xl p-3 sm:p-5">
-        {profile.attributes ? <RadarChart attributes={profile.attributes} size={280} color="#10b981" className="mx-auto max-w-full" /> : <div className="grid min-h-44 place-items-center text-center"><div><Target size={22} className="mx-auto text-sky-200" /><p className="mt-2 text-sm text-white">Attributes not recorded</p><p className="mt-1 text-xs text-slate-400">Player attribute data has not been added yet.</p></div></div>}
-        {profile.attributes && <div className="mt-1 grid grid-cols-2 gap-2 text-center text-[10px]">{playerAttributeFields.map(({ key, label }) => <span key={key} className="rounded-lg bg-white/[0.04] p-2 text-slate-300">{label}<b className="ml-1 text-sky-200">{profile.attributes?.[key]}</b></span>)}</div>}
-        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/[0.07] pt-3 text-[10px]"><div className="flex items-center justify-between rounded-lg bg-white/[0.04] p-2 text-slate-300"><span>Pass rating</span><b className="text-sky-200">{profile.attributes?.passing ?? '—'}{profile.attributes ? '/100' : ''}</b></div><div className="flex items-center justify-between rounded-lg bg-white/[0.04] p-2 text-slate-300"><span>Tackles won</span><b className="text-emerald-200">{profile.tackles}</b></div></div>
+        {profile.position === 'GK'
+          ? profile.attributes?.goalkeeping
+            ? <GoalkeeperRadarChart attributes={profile.attributes.goalkeeping} size={280} color="#10b981" className="mx-auto max-w-full" />
+            : <div className="grid min-h-44 place-items-center text-center"><div><Target size={22} className="mx-auto text-sky-200" /><p className="mt-2 text-sm text-white">Goalkeeper ratings not recorded</p><p className="mt-1 text-xs text-slate-400">An admin can add keeper attributes from Account Management.</p></div></div>
+          : profile.attributes
+            ? <RadarChart attributes={profile.attributes} size={280} color="#10b981" className="mx-auto max-w-full" />
+            : <div className="grid min-h-44 place-items-center text-center"><div><Target size={22} className="mx-auto text-sky-200" /><p className="mt-2 text-sm text-white">Attributes not recorded</p><p className="mt-1 text-xs text-slate-400">Player attribute data has not been added yet.</p></div></div>}
+        {profile.attributes && <div className="mt-1 grid grid-cols-2 gap-2 text-center text-[10px]">{playerAttributeFields.map(({ key, label }) => <span key={key} className="rounded-lg bg-white/4 p-2 text-slate-300">{label}<b className="ml-1 text-sky-200">{profile.attributes?.[key]}</b></span>)}</div>}
+        {profile.position === 'GK' && profile.attributes?.goalkeeping && <div className="mt-2 grid grid-cols-2 gap-2 text-center text-[10px]">{goalkeeperAttributeFields.map(({ key, label }) => <span key={key} className="rounded-lg bg-emerald-400/[0.07] p-2 text-slate-300">{label}<b className="ml-1 text-emerald-200">{profile.attributes?.goalkeeping?.[key]}</b></span>)}</div>}
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/[0.07] pt-3 text-[10px]"><div className="flex items-center justify-between rounded-lg bg-white/4 p-2 text-slate-300"><span>Pass rating</span><b className="text-sky-200">{profile.attributes?.passing ?? '—'}{profile.attributes ? '/100' : ''}</b></div><div className="flex items-center justify-between rounded-lg bg-white/4 p-2 text-slate-300"><span>Tackles won</span><b className="text-emerald-200">{profile.tackles}</b></div></div>
       </section>
 
       <section className="glass-card rounded-2xl p-4">
@@ -104,14 +111,14 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
       </section>
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="glass-card rounded-2xl p-4 text-center"><p className="text-[9px] uppercase tracking-wide text-slate-400">Win ratio</p><div className="mx-auto mt-3 grid h-20 w-20 place-items-center rounded-full p-[5px]" style={{ background: `conic-gradient(#10b981 ${profile.win_percentage}%, rgba(148,163,184,0.18) 0)` }}><div className="grid h-full w-full place-items-center rounded-full bg-[#11131d]"><span><b className="block font-display text-lg text-white">{profile.win_percentage}%</b><small className="text-[8px] text-slate-400">WIN</small></span></div></div><p className="mt-2 text-[9px] text-slate-400">{profile.total_wins} / {profile.matches_played} matches</p></div>
-        <div className="glass-card rounded-2xl p-4 text-center"><p className="text-[9px] uppercase tracking-wide text-slate-400">MOTM frequency</p><div className="mx-auto mt-3 grid h-20 w-20 place-items-center rounded-full p-[5px]" style={{ background: `conic-gradient(#7042f8 ${motmRate}%, rgba(148,163,184,0.18) 0)` }}><div className="grid h-full w-full place-items-center rounded-full bg-[#11131d]"><span><b className="block font-display text-lg text-white">{motmRate}%</b><small className="text-[8px] text-slate-400">RATE</small></span></div></div><p className="mt-2 text-[9px] text-slate-400">{profile.motm_count} awards · {profile.matches_played} matches</p></div>
+        <div className="glass-card rounded-2xl p-4 text-center"><p className="text-[9px] uppercase tracking-wide text-slate-400">Win ratio</p><div className="mx-auto mt-3 grid h-20 w-20 place-items-center rounded-full p-1.25" style={{ background: `conic-gradient(#10b981 ${profile.win_percentage}%, rgba(148,163,184,0.18) 0)` }}><div className="grid h-full w-full place-items-center rounded-full bg-[#11131d]"><span><b className="block font-display text-lg text-white">{profile.win_percentage}%</b><small className="text-[8px] text-slate-400">WIN</small></span></div></div><p className="mt-2 text-[9px] text-slate-400">{profile.total_wins} / {profile.matches_played} matches</p></div>
+        <div className="glass-card rounded-2xl p-4 text-center"><p className="text-[9px] uppercase tracking-wide text-slate-400">MOTM frequency</p><div className="mx-auto mt-3 grid h-20 w-20 place-items-center rounded-full p-1.25" style={{ background: `conic-gradient(#7042f8 ${motmRate}%, rgba(148,163,184,0.18) 0)` }}><div className="grid h-full w-full place-items-center rounded-full bg-[#11131d]"><span><b className="block font-display text-lg text-white">{motmRate}%</b><small className="text-[8px] text-slate-400">RATE</small></span></div></div><p className="mt-2 text-[9px] text-slate-400">{profile.motm_count} awards · {profile.matches_played} matches</p></div>
       </section>
 
       <section className="glass-card rounded-2xl p-4">
-        <div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary"><Trophy size={15} /></span><div><h2 className="text-sm font-semibold text-white">Tactical leadership</h2><p className="text-[9px] text-slate-400">Club manager record</p></div></div><span className="rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-2 py-1 text-[9px] text-emerald-200">{profile.role}</span></div>
+        <div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary"><Trophy size={15} /></span><div><h2 className="text-sm font-semibold text-white">Tactical leadership</h2><p className="text-[9px] text-slate-400">Club manager record</p></div></div><span className="rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[9px] text-emerald-200">{profile.role}</span></div>
         <div className="grid grid-cols-3 divide-x divide-white/[0.07] text-center"><div><p className="font-display text-base font-semibold text-white">{profile.matches_managed}</p><p className="text-[8px] text-slate-400">Managed</p></div><div><p className="font-display text-base font-semibold text-white">{profile.matches_won}</p><p className="text-[8px] text-slate-400">Won</p></div><div><p className="font-display text-base font-semibold text-emerald-200">{managerWinRate}%</p><p className="text-[8px] text-slate-400">Win rate</p></div></div>
-        <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3"><span className="text-[9px] uppercase tracking-wide text-slate-400">Trophies earned</span><span className="inline-flex items-center gap-1 rounded-lg bg-white/[0.05] px-2 py-1 text-[10px] text-slate-200"><Trophy size={11} className="text-amber-200" />{profile.trophies}</span></div>
+        <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3"><span className="text-[9px] uppercase tracking-wide text-slate-400">Trophies earned</span><span className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2 py-1 text-[10px] text-slate-200"><Trophy size={11} className="text-amber-200" />{profile.trophies}</span></div>
       </section>
 
       <section className="glass-card rounded-2xl p-4">

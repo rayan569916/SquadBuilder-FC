@@ -26,7 +26,7 @@ A match organizer for small-sided games. Admins and managers create fixtures, se
 
 5. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from the Supabase project settings. Restart the dev server after changing environment values.
 
-The first admin can create and edit manager and player accounts from Account Management, including login email, password, position, role, and five player attributes. Overall rating is the rounded average of the five attributes. Share initial passwords securely and have users change them after signing in. Public signup is disabled.
+The first admin can create and edit manager and player accounts from Account Management, including login email, password, position, role, and player attributes. Outfield overall rating is the rounded average of attack, shooting, passing, defense, and physical ratings. Goalkeeper overall rating is the rounded average of diving, handling, kicking, reflexes, speed, and positioning. Share initial passwords securely and have users change them after signing in. Public signup is disabled.
 
 ## Development
 

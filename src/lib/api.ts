@@ -35,6 +35,21 @@ function mapEvent(row: Record<string, unknown>, profiles: Profile[]): MatchEvent
   };
 }
 
+async function throwFunctionError(error: Error): Promise<never> {
+  const context = (error as Error & { context?: unknown }).context;
+  if (context instanceof Response) {
+    let message: string | undefined;
+    try {
+      const payload: unknown = await context.clone().json();
+      if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+        message = payload.error;
+      }
+    } catch {}
+    throw new Error(message || `${error.message} (HTTP ${context.status})`);
+  }
+  throw error;
+}
+
 export const api = {
   async getProfiles(): Promise<Profile[]> {
     const { data, error } = await requireSupabase().from('profiles').select('*').order('name');
@@ -70,7 +85,7 @@ export const api = {
     attributes: PlayerAttributes;
   }): Promise<Profile> {
     const { data: result, error } = await requireSupabase().functions.invoke('admin-update-user', { body: data });
-    if (error) throw error;
+    if (error) await throwFunctionError(error);
     if (!result?.profile) throw new Error(result?.error || 'Unable to update account.');
     return withAvatarUrl(result.profile as Profile);
   },
@@ -85,7 +100,7 @@ export const api = {
     attributes: PlayerAttributes;
   }): Promise<Profile> {
     const { data: result, error } = await requireSupabase().functions.invoke('admin-create-user', { body: data });
-    if (error) throw error;
+    if (error) await throwFunctionError(error);
     if (!result?.profile) throw new Error(result?.error || 'Account creation failed.');
     return withAvatarUrl(result.profile as Profile);
   },
