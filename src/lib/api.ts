@@ -50,6 +50,22 @@ async function throwFunctionError(error: Error): Promise<never> {
   throw error;
 }
 
+function createUploadId(): string {
+  const runtimeCrypto = globalThis.crypto;
+  if (typeof runtimeCrypto?.randomUUID === 'function') return runtimeCrypto.randomUUID();
+
+  const bytes = new Uint8Array(16);
+  if (typeof runtimeCrypto?.getRandomValues === 'function') {
+    runtimeCrypto.getRandomValues(bytes);
+  } else {
+    bytes.forEach((_, index) => { bytes[index] = Math.floor(Math.random() * 256); });
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export const api = {
   async getProfiles(): Promise<Profile[]> {
     const { data, error } = await requireSupabase().from('profiles').select('*').order('name');
@@ -110,7 +126,7 @@ export const api = {
     if (file.size > 5 * 1024 * 1024) throw new Error('Avatar images must be 5 MB or smaller.');
 
     const client = requireSupabase();
-    const path = `${userId}/${crypto.randomUUID()}`;
+    const path = `${userId}/${createUploadId()}`;
     const { error: uploadError } = await client.storage.from('avatars').upload(path, file, {
       contentType: file.type,
       upsert: false,

@@ -86,7 +86,7 @@ export const AppNavigator: React.FC = () => {
             </span>
           </button>
           <div className="flex items-center gap-2">
-            <button title="Notifications" className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10"><Bell size={17} /></button>
+            {/* <button title="Notifications" className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10"><Bell size={17} /></button> */}
             <button title="Leaderboards" onClick={() => navigateTo('leaderboards')} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10"><ChartNoAxesColumn size={17} /></button>
             {isAdmin && (
               <button onClick={() => navigateTo('admin_users')} title="Manage accounts" className="grid h-9 w-9 place-items-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"><Users size={18} /></button>

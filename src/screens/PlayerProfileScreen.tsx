@@ -80,7 +80,7 @@ export const PlayerProfileScreen: React.FC<PlayerProfileScreenProps> = ({ player
         </div>
         <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.15em] text-sky-200">{profile.jersey_number ? `#${profile.jersey_number} · ` : ''}{profile.club || 'SquadBuilder FC'}</p>
         <h1 className="mt-1 font-display text-xl font-semibold uppercase text-white">{profile.name}</h1>
-        <p className="mt-1 text-[10px] uppercase text-slate-400">{profile.position} · {profile.role}{profile.age ? ` · Age ${profile.age}` : ''}</p>
+        <p className="mt-1 text-[10px] uppercase text-slate-400">{profile.position} · {profile.role}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sky-200/20 bg-sky-200/[0.07] px-3 py-1 text-[9px] font-medium uppercase tracking-wide text-sky-200"><Shield size={12} />Player / {profile.role}</span>
         <div className="mt-4 flex items-center justify-center gap-2">
           <span className="rounded-full bg-primary-container/20 px-3 py-1.5 text-[10px] font-semibold text-primary">{getProfileOverallRating(profile) ?? '—'} OVR</span>
