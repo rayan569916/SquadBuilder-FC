@@ -60,6 +60,7 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transfer, setTransfer] = useState<{ playerId: string; from: 'A' | 'B' } | null>(null);
 
   useEffect(() => {
     api.getProfiles()
@@ -94,6 +95,7 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
     const randomized = shuffle(selectedIds);
     setTeamAIds(randomized.slice(0, teamSize));
     setTeamBIds(randomized.slice(teamSize));
+    setTransfer(null);
   };
 
   const togglePlayer = (id: string) => {
@@ -107,18 +109,15 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
     });
   };
 
-  const movePlayer = (playerId: string, from: 'A' | 'B') => {
-    if (from === 'A') {
-      const replacement = teamBIds.at(-1);
-      if (!replacement) return;
-      setTeamAIds((ids) => [...ids.filter((id) => id !== playerId), replacement]);
-      setTeamBIds((ids) => [...ids.filter((id) => id !== replacement), playerId]);
-    } else {
-      const replacement = teamAIds.at(-1);
-      if (!replacement) return;
-      setTeamBIds((ids) => [...ids.filter((id) => id !== playerId), replacement]);
-      setTeamAIds((ids) => [...ids.filter((id) => id !== replacement), playerId]);
-    }
+  // Swap the chosen player with a specific player from the other team.
+  // Each player keeps the other's slot so the team order stays stable and sizes stay equal.
+  const swapPlayers = (playerId: string, otherId: string) => {
+    const inA = teamAIds.includes(playerId);
+    const aId = inA ? playerId : otherId;
+    const bId = inA ? otherId : playerId;
+    setTeamAIds((ids) => ids.map((id) => (id === aId ? bId : id)));
+    setTeamBIds((ids) => ids.map((id) => (id === bId ? aId : id)));
+    setTransfer(null);
   };
 
   const saveMatch = async () => {
@@ -219,7 +218,22 @@ export const MatchSetupScreen: React.FC<MatchSetupScreenProps> = ({ onMatchCreat
           <h2 className="mb-3 font-semibold text-white">{team.name} <span className="text-xs text-slate-400">{team.ids.length}/{teamSize}</span></h2>
           <ul className="space-y-2">{team.ids.map((playerId) => {
             const player = profiles.find((item) => item.id === playerId);
-            return <li key={playerId} className="flex items-center justify-between gap-2 text-sm"><span className="truncate text-slate-200">{player?.name}</span><button type="button" onClick={() => movePlayer(playerId, team.key)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-emerald-200">Move to {team.key === 'A' ? 'B' : 'A'}</button></li>;
+            const isOpen = transfer?.playerId === playerId;
+            const otherIds = team.key === 'A' ? teamBIds : teamAIds;
+            const otherName = team.key === 'A' ? teamBName : teamAName;
+            return <li key={playerId} className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-slate-200">{player?.name}</span>
+                <button type="button" aria-expanded={isOpen} onClick={() => setTransfer(isOpen ? null : { playerId, from: team.key })} className="rounded-md border border-white/10 px-2 py-1 text-xs text-emerald-200">{isOpen ? 'Cancel' : `Transfer to ${team.key === 'A' ? 'B' : 'A'}`}</button>
+              </div>
+              {isOpen && <div className="rounded-lg border border-white/10 bg-[#080a10]/60 p-2">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-slate-400">Swap {player?.name} with a player from {otherName}</p>
+                <div className="grid gap-1.5">{otherIds.map((otherId) => {
+                  const other = profiles.find((item) => item.id === otherId);
+                  return <button key={otherId} type="button" onClick={() => swapPlayers(playerId, otherId)} className="flex items-center justify-between rounded-md bg-white/[0.04] px-2 py-1.5 text-left text-xs text-slate-200 hover:bg-white/10"><span className="truncate">{other?.name}</span><span className="ml-2 shrink-0 text-slate-400">{other?.position} · {other ? getProfileOverallRating(other) ?? '—' : '—'}</span></button>;
+                })}</div>
+              </div>}
+            </li>;;
           })}</ul>
         </div>)}</section>}
 

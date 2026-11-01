@@ -49,7 +49,7 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
       setDetail(loaded);
       setEvents(loaded?.events || []);
       setEventTeam('A');
-      setPlayerId(loaded?.roster.find((entry) => entry.team === 'A')?.player_id || '');
+      setPlayerId(loaded?.roster.find((entry) => entry.team === 'A' && !entry.is_unavailable)?.player_id || '');
     };
     load().catch((loadError: unknown) => {
       if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load match data.');
@@ -60,8 +60,10 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
   const match = detail?.match;
   const isAssignedManager = Boolean(match && currentUser && (isAdmin || match.manager_a_id === currentUser.id || match.manager_b_id === currentUser.id));
   const canEdit = Boolean(isAssignedManager && match?.status !== 'completed');
-  const teamAPlayers = detail?.roster.filter((entry) => entry.team === 'A').map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
-  const teamBPlayers = detail?.roster.filter((entry) => entry.team === 'B').map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
+  const teamAPlayers = detail?.roster.filter((entry) => entry.team === 'A' && !entry.is_unavailable).map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
+  const teamBPlayers = detail?.roster.filter((entry) => entry.team === 'B' && !entry.is_unavailable).map((entry) => entry.player).filter((player): player is Profile => Boolean(player)) || [];
+  const substituteIds = new Set(detail?.roster.filter((entry) => entry.is_substitute).map((entry) => entry.player_id) || []);
+  const playerLabel = (player: Profile) => (substituteIds.has(player.id) ? `${player.name} (SUB)` : player.name);
   const eventPlayers = eventTeam === 'A' ? teamAPlayers : teamBPlayers;
   const score = useMemo(() => events.reduce((total, event) => {
     if (!scoringTypes.includes(event.type)) return total;
@@ -140,8 +142,8 @@ export const StatsEntryScreen: React.FC<StatsEntryScreenProps> = ({ matchId, onS
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm text-slate-300">Event<select value={eventType} onChange={(event) => setEventType(event.target.value as MatchEventType)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white">{Object.entries(eventLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="text-sm text-slate-300">Team<select value={eventTeam} onChange={(event) => setEventTeam(event.target.value as MatchTeam)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white"><option value="A">{match.team_a_name}</option><option value="B">{match.team_b_name}</option></select></label>
-          <label className="text-sm text-slate-300">Player<select required value={playerId} onChange={(event) => setPlayerId(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white"><option value="">Choose player</option>{eventPlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label>
-          {scoringTypes.includes(eventType) && <label className="text-sm text-slate-300">Assist (optional)<select value={assistId} onChange={(event) => setAssistId(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white"><option value="">No assist</option>{eventPlayers.filter((player) => player.id !== playerId).map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label>}
+          <label className="text-sm text-slate-300">Player<select required value={playerId} onChange={(event) => setPlayerId(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white"><option value="">Choose player</option>{eventPlayers.map((player) => <option key={player.id} value={player.id}>{playerLabel(player)}</option>)}</select></label>
+          {scoringTypes.includes(eventType) && <label className="text-sm text-slate-300">Assist (optional)<select value={assistId} onChange={(event) => setAssistId(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white"><option value="">No assist</option>{eventPlayers.filter((player) => player.id !== playerId).map((player) => <option key={player.id} value={player.id}>{playerLabel(player)}</option>)}</select></label>}
           <label className="text-sm text-slate-300">Minute<input type="number" min={0} max={200} value={minute} onChange={(event) => setMinute(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
           <label className="text-sm text-slate-300">Notes<input value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={180} placeholder="Optional detail" className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
         </div>

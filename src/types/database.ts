@@ -118,6 +118,8 @@ export interface MatchLineup {
   x_coord: number; // 0 - 100 percentage
   y_coord: number; // 0 - 100 percentage
   position_tag: string;
+  is_substitute?: boolean;
+  replaces_name?: string;
   player?: Profile;
 }
 
@@ -133,6 +135,9 @@ export interface MatchRosterEntry {
   match_id: string;
   player_id: string;
   team: MatchTeam;
+  is_substitute?: boolean;
+  is_unavailable?: boolean;
+  replaces_player_id?: string | null;
   player?: Profile;
 }
 

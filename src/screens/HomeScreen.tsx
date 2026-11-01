@@ -34,7 +34,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     ? upcomingMatch.custom_players_per_team || 0
     : Number(upcomingMatch?.format.replace('s', '') || 0);
   const rosterTarget = teamSize * 2;
-  const rosterCount = upcomingDetail?.roster.length || 0;
+  const rosterCount = upcomingDetail?.roster.filter((entry) => !entry.is_unavailable).length || 0;
   const lineupCount = upcomingDetail?.lineups.length || 0;
   const readiness = rosterTarget ? Math.min(100, Math.round((rosterCount / rosterTarget) * 100)) : 0;
 

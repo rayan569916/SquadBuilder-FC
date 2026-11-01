@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeftRight, LoaderCircle, Save, ShieldAlert } from 'lucide-react';
+import { ArrowLeftRight, LoaderCircle, RotateCcw, Save, ShieldAlert, UserPlus } from 'lucide-react';
 import { FormationsBoard } from '../components/FormationsBoard';
 import { api, MatchDetail } from '../lib/api';
 import { getProfileOverallRating } from '../lib/playerRatings';
@@ -23,6 +23,8 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [subTargetId, setSubTargetId] = useState<string | null>(null);
+  const [subBusy, setSubBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -78,6 +80,46 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
     }
   };
 
+  const reloadDetail = async (id: string) => {
+    const refreshed = await api.getMatchDetail(id);
+    setDetail(refreshed);
+    setRoster(refreshed?.roster || []);
+    setLineups(refreshed?.lineups || []);
+  };
+
+  const makeSubstitution = async (unavailableId: string, substituteId: string) => {
+    if (!detail || !canEdit || subBusy) return;
+    setSubBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.substituteMatchPlayer(detail.match.id, unavailableId, substituteId);
+      await reloadDetail(detail.match.id);
+      setSubTargetId(null);
+      setNotice('Substitute added. They can now be credited with goals and assists.');
+    } catch (subError) {
+      setError(subError instanceof Error ? subError.message : 'Unable to add the substitute.');
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
+  const undoSubstitution = async (substituteId: string) => {
+    if (!detail || !canEdit || subBusy) return;
+    setSubBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.undoMatchSubstitution(detail.match.id, substituteId);
+      await reloadDetail(detail.match.id);
+      setNotice('Substitution undone.');
+    } catch (undoError) {
+      setError(undoError instanceof Error ? undoError.message : 'Unable to undo the substitution.');
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
   if (loading) return <div className="grid min-h-64 place-items-center text-slate-300"><LoaderCircle className="animate-spin" /></div>;
   if (!detail) return <section className="space-y-3 p-6"><h1 className="text-xl font-semibold text-white">No match selected</h1><p className="text-sm text-slate-400">Create a match before viewing its tactics.</p>{onChooseMatch && <button onClick={onChooseMatch} className="rounded-lg bg-emerald-400 px-4 py-2 font-semibold text-[#07110f]">Create match</button>}</section>;
 
@@ -85,7 +127,9 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
   const managerId = team === 'A' ? detail.match.manager_a_id : detail.match.manager_b_id;
   const managerName = detail.profiles.find((profile) => profile.id === managerId)?.name
     || 'Assigned manager';
-  const teamRatings = teamPlayers.map((entry) => entry.player ? getProfileOverallRating(entry.player) : undefined);
+  const rosterIds = new Set(roster.map((entry) => entry.player_id));
+  const subCandidates = detail.profiles.filter((profile) => !rosterIds.has(profile.id));
+  const teamRatings = teamPlayers.filter((entry) => !entry.is_unavailable).map((entry) => entry.player ? getProfileOverallRating(entry.player) : undefined);
   const averageRating = teamRatings.length > 0 && teamRatings.every((rating): rating is number => rating !== undefined)
     ? Math.round(teamRatings.reduce((total, rating) => total + rating, 0) / teamRatings.length)
     : undefined;
@@ -98,10 +142,11 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
       </header>
 
       <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Team formation">
-        {(['A', 'B'] as const).map((side) => <button key={side} role="tab" aria-selected={team === side} onClick={() => setTeam(side)} className={`rounded-2xl border p-3 text-left transition ${team === side ? 'border-primary/40 bg-primary/[0.12] shadow-[0_0_18px_rgba(112,66,248,0.16)]' : 'border-white/[0.07] bg-white/3'}`}><span className="block text-[9px] font-semibold uppercase tracking-wide text-sky-200">Team {side}</span><span className="mt-1 block truncate text-sm font-semibold text-white">{side === 'A' ? detail.match.team_a_name : detail.match.team_b_name}</span><span className="mt-1 block text-[10px] text-slate-400">{roster.filter((entry) => entry.team === side).length} players</span></button>)}
+        {(['A', 'B'] as const).map((side) => <button key={side} role="tab" aria-selected={team === side} onClick={() => setTeam(side)} className={`rounded-2xl border p-3 text-left transition ${team === side ? 'border-primary/40 bg-primary/[0.12] shadow-[0_0_18px_rgba(112,66,248,0.16)]' : 'border-white/[0.07] bg-white/3'}`}><span className="block text-[9px] font-semibold uppercase tracking-wide text-sky-200">Team {side}</span><span className="mt-1 block truncate text-sm font-semibold text-white">{side === 'A' ? detail.match.team_a_name : detail.match.team_b_name}</span><span className="mt-1 block text-[10px] text-slate-400">{roster.filter((entry) => entry.team === side && !entry.is_unavailable).length} players</span></button>)}
       </div>
 
       <div className="flex items-center justify-between text-xs"><span className="text-slate-300">Manager: {managerName}</span><span className="text-[10px] uppercase text-slate-500">{detail.match.format}{detail.match.format === 'custom' ? ` · ${detail.match.custom_players_per_team} a side` : ''}</span></div>
+      {canEdit && !editing && <p className="text-[10px] text-slate-500">A player can't make it? Tap Unavailable on the roster to bring in a substitute.</p>}
       {editing && <div role="status" className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] p-3 text-xs text-sky-100"><ShieldAlert size={16} /> Drag players on the pitch to adjust positions. Use the roster transfer controls to rebalance teams.</div>}
 
       <FormationsBoard
@@ -115,10 +160,36 @@ export const FormationScreen: React.FC<FormationScreenProps> = ({ matchId, onVie
       <section className="glass-card rounded-2xl p-4">
         <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">Selected roster</h2><span className="text-[10px] text-sky-200">Average {averageRating ?? '—'} OVR</span></div>
         <ul className="divide-y divide-white/10">
-          {teamPlayers.map((entry) => <li key={entry.player_id} className="flex items-center justify-between gap-3 py-2.5">
-            <button onClick={() => onViewPlayer?.(entry.player_id)} className="min-w-0 text-left"><span className="block text-sm text-white">{entry.player?.name || 'Player'}</span><span className="text-xs text-slate-400">{entry.player?.position} · {entry.player ? getProfileOverallRating(entry.player) ?? '—' : '—'} rating</span></button>
-            {editing && canEdit && <button onClick={() => transferPlayer(entry.player_id)} className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-sky-200"><ArrowLeftRight size={13} /> Transfer</button>}
-          </li>)}
+          {teamPlayers.map((entry) => {
+            const isOpen = subTargetId === entry.player_id;
+            const replacedName = entry.replaces_player_id ? roster.find((item) => item.player_id === entry.replaces_player_id)?.player?.name : undefined;
+            const candidates = isOpen
+              ? [...subCandidates].sort((x, y) => Number(y.position === entry.player?.position) - Number(x.position === entry.player?.position) || (getProfileOverallRating(y) ?? 0) - (getProfileOverallRating(x) ?? 0))
+              : [];
+            return <li key={entry.player_id} className="py-2.5">
+              <div className={`flex items-center justify-between gap-3 ${entry.is_unavailable ? 'opacity-55' : ''}`}>
+                <button onClick={() => onViewPlayer?.(entry.player_id)} className="min-w-0 text-left">
+                  <span className={`block text-sm text-white ${entry.is_unavailable ? 'line-through' : ''}`}>{entry.player?.name || 'Player'}
+                    {entry.is_substitute && <b className="ml-2 rounded bg-emerald-400/15 px-1 text-[9px] text-emerald-200">SUB</b>}
+                    {entry.is_unavailable && <b className="ml-2 text-[9px] uppercase text-amber-200">Unavailable</b>}
+                  </span>
+                  <span className="text-xs text-slate-400">{entry.player?.position} · {entry.player ? getProfileOverallRating(entry.player) ?? '—' : '—'} rating{replacedName ? ` · for ${replacedName}` : ''}</span>
+                </button>
+                {editing && canEdit && !entry.is_substitute && !entry.is_unavailable && <button onClick={() => transferPlayer(entry.player_id)} className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-sky-200"><ArrowLeftRight size={13} /> Transfer</button>}
+                {!editing && canEdit && !entry.is_unavailable && <div className="flex shrink-0 items-center gap-1.5">
+                  {entry.is_substitute && <button disabled={subBusy} onClick={() => void undoSubstitution(entry.player_id)} className="flex items-center gap-1 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-slate-300 disabled:opacity-50"><RotateCcw size={12} /> Undo</button>}
+                  <button aria-expanded={isOpen} disabled={subBusy} onClick={() => setSubTargetId(isOpen ? null : entry.player_id)} className="flex items-center gap-1 rounded-full border border-amber-300/25 px-2.5 py-1.5 text-[10px] text-amber-200 disabled:opacity-50"><UserPlus size={12} /> {isOpen ? 'Cancel' : 'Unavailable'}</button>
+                </div>}
+              </div>
+              {isOpen && <div className="mt-2 rounded-xl border border-white/10 bg-[#080a10]/60 p-2">
+                <p className="mb-1.5 px-1 text-[10px] uppercase tracking-wide text-slate-400">Choose a substitute for {entry.player?.name} · same position first</p>
+                <div className="grid max-h-56 gap-1.5 overflow-y-auto">
+                  {candidates.map((candidate) => <button key={candidate.id} type="button" disabled={subBusy} onClick={() => void makeSubstitution(entry.player_id, candidate.id)} className="flex items-center justify-between rounded-lg bg-white/[0.04] px-2.5 py-2 text-left text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50"><span className="truncate">{candidate.name}</span><span className="ml-2 shrink-0 text-slate-400">{candidate.position} · {getProfileOverallRating(candidate) ?? '—'}</span></button>)}
+                  {candidates.length === 0 && <p className="px-1 py-2 text-xs text-slate-400">Every registered player is already in this match.</p>}
+                </div>
+              </div>}
+            </li>;
+          })}
           {teamPlayers.length === 0 && <li className="py-4 text-sm text-slate-400">No players assigned to this side.</li>}
         </ul>
       </section>

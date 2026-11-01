@@ -113,7 +113,7 @@ export const MatchHistoryScreen: React.FC<MatchHistoryScreenProps> = ({ matchId,
           </div>
           <section className="glass-card rounded-2xl p-4">
             <h3 className="mb-3 text-sm font-semibold text-white">{formationTeam === 'A' ? selectedMatch.team_a_name : selectedMatch.team_b_name} roster</h3>
-            <ul className="mb-4 grid gap-2 sm:grid-cols-2">{selected.roster.filter((entry) => entry.team === formationTeam).map((entry) => <li key={entry.player_id} className="flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-2 text-sm"><span className="truncate text-slate-200">{entry.player?.name}</span><span className="shrink-0 text-xs text-slate-500">{entry.player?.position}</span></li>)}</ul>
+            <ul className="mb-4 grid gap-2 sm:grid-cols-2">{selected.roster.filter((entry) => entry.team === formationTeam).map((entry) => <li key={entry.player_id} className={`flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-2 text-sm ${entry.is_unavailable ? 'opacity-50' : ''}`}><span className={`truncate text-slate-200 ${entry.is_unavailable ? 'line-through' : ''}`}>{entry.player?.name}</span><span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-500">{entry.is_substitute && <b className="rounded bg-emerald-400/15 px-1 text-[9px] text-emerald-200">SUB</b>}{entry.is_unavailable && <span className="text-[9px] uppercase text-amber-200">Unavailable</span>}{entry.player?.position}</span></li>)}</ul>
             <h4 className="mb-2 text-xs font-medium text-slate-300">Saved formation</h4>
             <FormationsBoard lineups={selected.lineups} activeTeam={formationTeam} />
           </section>

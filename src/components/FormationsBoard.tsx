@@ -232,6 +232,15 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
                   {playerRating ?? '—'}
                 </span>
 
+                {lineup.is_substitute && (
+                  <span
+                    title={lineup.replaces_name ? `Substitute for ${lineup.replaces_name}` : 'Substitute'}
+                    className="absolute top-0.5 right-0.5 z-20 rounded border border-emerald-300/40 bg-emerald-400/20 px-1 text-[8px] font-bold leading-3 text-emerald-200"
+                  >
+                    SUB
+                  </span>
+                )}
+
                 {/* Avatar Image or Initial Fallback */}
                 {player?.avatar_url ? (
                   <img
@@ -275,6 +284,18 @@ export const FormationsBoard: React.FC<FormationsBoardProps> = ({
           </div>
         )}
       </div>
+
+      {displayedLineups.some((lineup) => lineup.is_substitute) && (
+        <ul aria-label="Substitutes" className="mt-3 flex w-full flex-wrap justify-center gap-2 text-[10px]">
+          {displayedLineups.filter((lineup) => lineup.is_substitute).map((lineup) => (
+            <li key={lineup.id} className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2.5 py-1 text-emerald-100">
+              <b className="mr-1 text-emerald-300">SUB</b>
+              {lineup.player?.name || lineup.position_tag}
+              {lineup.replaces_name && <span className="text-slate-400"> for {lineup.replaces_name}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {editable && (
         <div className="mt-3 flex items-center gap-2 text-xs text-secondary bg-[#181924]/80 px-3.5 py-1.5 rounded-full border border-secondary/20">

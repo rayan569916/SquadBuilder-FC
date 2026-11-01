@@ -1,9 +1,52 @@
-import React, { useEffect, useState } from 'react';
-import { LoaderCircle, Pencil, Save, UserPlus, Users, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Camera, LoaderCircle, Pencil, Save, UserPlus, Users, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { calculateOverallRating, getProfileOverallRating, goalkeeperAttributeFields, playerAttributeFields, GoalkeeperAttributeKey, PlayerAttributeKey } from '../lib/playerRatings';
 import { GoalkeeperAttributes, PlayerAttributes, PlayerPosition, Profile, UserRole } from '../types/database';
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+const validateAvatarFile = (file: File): string | null => {
+  if (!file.type.startsWith('image/')) return 'Please choose an image file.';
+  if (file.size > MAX_AVATAR_BYTES) return 'Image must be 5 MB or smaller.';
+  return null;
+};
+
+const AvatarPicker: React.FC<{
+  src?: string | null;
+  name: string;
+  busy?: boolean;
+  onSelect: (file: File) => void;
+}> = ({ src, name, busy, onSelect }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-slate-800 text-sm font-semibold text-white">
+      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : (name.trim().slice(0, 2).toUpperCase() || '?')}
+      <button
+        type="button"
+        disabled={busy}
+        title="Upload profile photo"
+        onClick={() => inputRef.current?.click()}
+        className="absolute inset-x-0 bottom-0 flex h-5 items-center justify-center bg-black/70 text-white disabled:opacity-50"
+      >
+        {busy ? <LoaderCircle size={11} className="animate-spin" /> : <Camera size={11} />}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) onSelect(file);
+        }}
+      />
+    </div>
+  );
+};
+
 
 type AttributeDraft = Record<PlayerAttributeKey, string> & Record<GoalkeeperAttributeKey, string>;
 type AccountDraft = {
@@ -55,6 +98,11 @@ export const UserManagementScreen: React.FC = () => {
   const [role, setRole] = useState<UserRole>('player');
   const [position, setPosition] = useState<PlayerPosition>('MF');
   const [newAttributes, setNewAttributes] = useState<AttributeDraft>(emptyAttributeDraft);
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
+  const [newAvatarPreview, setNewAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatarId, setUploadingAvatarId] = useState<string | null>(null);
+
+
 
   const loadProfiles = async () => {
     setLoading(true);
@@ -70,6 +118,37 @@ export const UserManagementScreen: React.FC = () => {
   };
 
   useEffect(() => { void loadProfiles(); }, []);
+  useEffect(() => {
+    if (!newAvatarFile) { setNewAvatarPreview(null); return; }
+    const url = URL.createObjectURL(newAvatarFile);
+    setNewAvatarPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [newAvatarFile]);
+
+  const selectNewAvatar = (file: File) => {
+    const problem = validateAvatarFile(file);
+    if (problem) { setError(problem); return; }
+    setError(null);
+    setNewAvatarFile(file);
+  };
+
+  const uploadAvatarForProfile = async (profile: Profile, file: File) => {
+    const problem = validateAvatarFile(file);
+    if (problem) { setError(problem); return; }
+    setUploadingAvatarId(profile.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const updated = await api.uploadAvatar(profile.id, file);
+      setProfiles((current) => current.map((item) => item.id === updated.id ? updated : item));
+      if (updated.id === currentUser?.id) await refreshProfile();
+      setSuccess(`Photo updated for ${updated.name}.`);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Unable to upload photo.');
+    } finally {
+      setUploadingAvatarId(null);
+    }
+  };
 
   const beginEdit = (profile: Profile) => {
     setEditingProfileId(profile.id);
@@ -136,13 +215,28 @@ export const UserManagementScreen: React.FC = () => {
     }
     try {
       const attributes = parseAttributes(newAttributes);
-      await api.createProfile({ name: name.trim(), email: email.trim(), password, role, position, age: 24, attributes });
+      const created = await api.createProfile({ name: name.trim(), email: email.trim(), password, role, position, age: 24, attributes });
+
+      let photoFailed = false;
+      if (newAvatarFile) {
+        try {
+          await api.uploadAvatar(created.id, newAvatarFile);
+        } catch {
+          photoFailed = true;
+        }
+      }
+
       setName('');
       setEmail('');
       setPassword('');
       setNewAttributes(emptyAttributeDraft());
+      setNewAvatarFile(null);
       await loadProfiles();
-      setSuccess('Account created. Share the initial password securely and ask the player to change it.');
+      setSuccess(
+        photoFailed
+          ? 'Account created, but the photo upload failed. You can add it from Edit account.'
+          : 'Account created. Share the initial password securely and ask the player to change it.'
+      );
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Unable to create account.');
     } finally {
@@ -161,6 +255,13 @@ export const UserManagementScreen: React.FC = () => {
       </header>
 
       <form onSubmit={createAccount} className="glass-card grid gap-3 rounded-2xl p-4 sm:grid-cols-2">
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <AvatarPicker src={newAvatarPreview} name={name} onSelect={selectNewAvatar} />
+          <div className="text-xs text-slate-400">
+            Profile photo (optional)
+            {newAvatarFile && <button type="button" onClick={() => setNewAvatarFile(null)} className="ml-2 text-rose-300">Remove</button>}
+          </div>
+        </div>
         <label className="text-sm text-slate-300">Name<input required value={name} onChange={(event) => setName(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
         <label className="text-sm text-slate-300">Username / sign-in email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
         <label className="text-sm text-slate-300">Initial password<input required minLength={10} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-white" /></label>
@@ -186,15 +287,25 @@ export const UserManagementScreen: React.FC = () => {
                   <div className="min-w-0"><p className="truncate text-sm font-medium text-white">{profile.name}</p><p className="truncate text-xs text-slate-400">{profile.email}</p><p className="mt-1 text-[10px] text-sky-200">{profile.position} · {profile.role} · OVR {getProfileOverallRating(profile) ?? '—'}</p></div>
                 </div>
                 <button type="button" onClick={() => editingProfileId === profile.id ? (setEditingProfileId(null), setEditDraft(null)) : beginEdit(profile)} className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-white/10 px-3 text-xs text-slate-200">{editingProfileId === profile.id ? <><X size={14} />Cancel</> : <><Pencil size={14} />Edit account</>}</button>
-                {editingProfileId === profile.id && editDraft && <form onSubmit={(event) => void saveAccount(event, profile)} className="col-span-full grid gap-3 rounded-xl border border-white/8 bg-[#080a10]/50 p-3 sm:grid-cols-2">
-                  <label className="text-xs text-slate-400">Name<input required value={editDraft.name} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, name: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
-                  <label className="text-xs text-slate-400">Username / sign-in email<input required type="email" value={editDraft.email} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, email: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
-                  <label className="text-xs text-slate-400">New password <span className="text-slate-500">(leave blank to keep current)</span><input type="password" minLength={10} autoComplete="new-password" value={editDraft.password} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, password: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
-                  <label className="text-xs text-slate-400">Position<select value={editDraft.position} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, position: event.target.value as PlayerPosition }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white"><option value="GK">Goalkeeper</option><option value="DF">Defender</option><option value="MF">Midfielder</option><option value="FW">Forward</option></select></label>
-                  <label className="text-xs text-slate-400">Role<select disabled={profile.id === currentUser?.id} value={editDraft.role} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, role: event.target.value as UserRole }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm capitalize text-white disabled:opacity-50"><option value="player">Player</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
-                  <fieldset className="sm:col-span-2"><legend className="mb-2 text-xs text-slate-300">Player attributes · 0–100 each</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{playerAttributeFields.map(({ key, label }) => <label key={key} className="text-[10px] text-slate-400">{label}<input required type="number" min={0} max={100} step={1} value={editDraft.attributes[key]} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, attributes: { ...draft.attributes, [key]: event.target.value } }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-2 py-2 text-sm tabular-nums text-white" /></label>)}</div>{editDraft.position === 'GK' && <div className="mt-3 border-t border-white/8 pt-3"><p className="mb-2 text-xs text-slate-300">Goalkeeper attributes · Used for keeper OVR</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{goalkeeperAttributeFields.map(({ key, label }) => <label key={key} className="text-[10px] text-slate-400">{label}<input required type="number" min={0} max={100} step={1} value={editDraft.attributes[key]} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, attributes: { ...draft.attributes, [key]: event.target.value } }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-2 py-2 text-sm tabular-nums text-white" /></label>)}</div></div>}<p className="mt-2 text-xs text-primary">Calculated OVR: {isValidAttributeDraft(editDraft.attributes, editDraft.position) ? calculateOverallRating(parseAttributes(editDraft.attributes), editDraft.position) : '—'}</p></fieldset>
-                  <div className="flex items-center justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => { setEditingProfileId(null); setEditDraft(null); }} className="rounded-full border border-white/10 px-4 py-2 text-xs text-slate-300">Cancel</button><button type="submit" disabled={savingAccountId === profile.id} className="flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{savingAccountId === profile.id ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}{savingAccountId === profile.id ? 'Saving…' : 'Save account'}</button></div>
-                </form>}
+                {editingProfileId === profile.id && editDraft &&
+                  <form onSubmit={(event) => void saveAccount(event, profile)} className="col-span-full grid gap-3 rounded-xl border border-white/8 bg-[#080a10]/50 p-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-3 sm:col-span-2">
+                      <AvatarPicker
+                        src={profile.avatar_url}
+                        name={profile.name}
+                        busy={uploadingAvatarId === profile.id}
+                        onSelect={(file) => void uploadAvatarForProfile(profile, file)}
+                      />
+                      <p className="text-xs text-slate-400">Change profile photo (saves immediately)</p>
+                    </div>
+                    <label className="text-xs text-slate-400">Name<input required value={editDraft.name} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, name: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
+                    <label className="text-xs text-slate-400">Username / sign-in email<input required type="email" value={editDraft.email} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, email: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
+                    <label className="text-xs text-slate-400">New password <span className="text-slate-500">(leave blank to keep current)</span><input type="password" minLength={10} autoComplete="new-password" value={editDraft.password} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, password: event.target.value }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white" /></label>
+                    <label className="text-xs text-slate-400">Position<select value={editDraft.position} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, position: event.target.value as PlayerPosition }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm text-white"><option value="GK">Goalkeeper</option><option value="DF">Defender</option><option value="MF">Midfielder</option><option value="FW">Forward</option></select></label>
+                    <label className="text-xs text-slate-400">Role<select disabled={profile.id === currentUser?.id} value={editDraft.role} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, role: event.target.value as UserRole }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-3 py-2.5 text-sm capitalize text-white disabled:opacity-50"><option value="player">Player</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
+                    <fieldset className="sm:col-span-2"><legend className="mb-2 text-xs text-slate-300">Player attributes · 0–100 each</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{playerAttributeFields.map(({ key, label }) => <label key={key} className="text-[10px] text-slate-400">{label}<input required type="number" min={0} max={100} step={1} value={editDraft.attributes[key]} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, attributes: { ...draft.attributes, [key]: event.target.value } }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-2 py-2 text-sm tabular-nums text-white" /></label>)}</div>{editDraft.position === 'GK' && <div className="mt-3 border-t border-white/8 pt-3"><p className="mb-2 text-xs text-slate-300">Goalkeeper attributes · Used for keeper OVR</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{goalkeeperAttributeFields.map(({ key, label }) => <label key={key} className="text-[10px] text-slate-400">{label}<input required type="number" min={0} max={100} step={1} value={editDraft.attributes[key]} onChange={(event) => setEditDraft((draft) => draft && ({ ...draft, attributes: { ...draft.attributes, [key]: event.target.value } }))} className="mt-1 block w-full rounded-lg border border-white/10 bg-[#080a10] px-2 py-2 text-sm tabular-nums text-white" /></label>)}</div></div>}<p className="mt-2 text-xs text-primary">Calculated OVR: {isValidAttributeDraft(editDraft.attributes, editDraft.position) ? calculateOverallRating(parseAttributes(editDraft.attributes), editDraft.position) : '—'}</p></fieldset>
+                    <div className="flex items-center justify-end gap-2 sm:col-span-2"><button type="button" onClick={() => { setEditingProfileId(null); setEditDraft(null); }} className="rounded-full border border-white/10 px-4 py-2 text-xs text-slate-300">Cancel</button><button type="submit" disabled={savingAccountId === profile.id} className="flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{savingAccountId === profile.id ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}{savingAccountId === profile.id ? 'Saving…' : 'Save account'}</button></div>
+                  </form>}
               </div>
             ))}
             {profiles.length === 0 && <p className="p-4 text-sm text-slate-400">No accounts yet.</p>}

@@ -13,6 +13,11 @@ interface LeaderboardsScreenProps {
 type Criterion = 'overall' | PlayerAttributeKey | 'diving' | 'handling' | 'kicking' | 'reflexes' | 'keeper_speed' | 'positioning' | 'goals' | 'assists' | 'winrate' | 'motm' | 'votes';
 
 const criteria: { id: Criterion; label: string; Icon: typeof Target }[] = [
+  { id: 'motm', label: 'MOTM', Icon: Trophy },
+  { id: 'goals', label: 'Goals', Icon: Target },
+  { id: 'assists', label: 'Assists', Icon: Award },
+  { id: 'winrate', label: 'Win rate', Icon: TrendingUp },
+  { id: 'votes', label: 'Votes received', Icon: Trophy },
   { id: 'overall', label: 'Player rating', Icon: Gauge },
   { id: 'impact', label: 'Attack', Icon: Activity },
   { id: 'shooting', label: 'Shooting', Icon: Target },
@@ -25,11 +30,6 @@ const criteria: { id: Criterion; label: string; Icon: typeof Target }[] = [
   { id: 'reflexes', label: 'Reflexes', Icon: Activity },
   { id: 'keeper_speed', label: 'Keeper speed', Icon: TrendingUp },
   { id: 'positioning', label: 'Positioning', Icon: Shield },
-  { id: 'goals', label: 'Goals', Icon: Target },
-  { id: 'assists', label: 'Assists', Icon: Award },
-  { id: 'winrate', label: 'Win rate', Icon: TrendingUp },
-  { id: 'motm', label: 'MOTM', Icon: Trophy },
-  { id: 'votes', label: 'Votes received', Icon: Trophy },
 ];
 
 const goalkeeperCriterionKeys: Partial<Record<Criterion, GoalkeeperAttributeKey>> = {

@@ -20,6 +20,7 @@ export const InlineMOTMPoll: React.FC<InlineMOTMPollProps> = ({ detail, currentU
   const [error, setError] = useState<string | null>(null);
 
   const candidates = useMemo(() => roster
+    .filter((entry) => !entry.is_unavailable)
     .map((entry) => entry.player)
     .filter((player): player is Profile => Boolean(player)), [roster]);
   const voteRows = useMemo(() => localVote ? [...votes, localVote] : votes, [localVote, votes]);
@@ -33,7 +34,7 @@ export const InlineMOTMPoll: React.FC<InlineMOTMPollProps> = ({ detail, currentU
     ? []
     : candidates.filter((player) => counts.get(player.id) === highestVoteCount), [candidates, counts, highestVoteCount]);
   const hasVoted = Boolean(currentUser && voteRows.some((vote) => vote.voter_id === currentUser.id));
-  const isParticipant = Boolean(currentUser && roster.some((entry) => entry.player_id === currentUser.id));
+  const isParticipant = Boolean(currentUser && roster.some((entry) => entry.player_id === currentUser.id && !entry.is_unavailable));
   const isLocked = Boolean(match.motm_locked_at || approvedPlayerId);
   const winnerId = approvedPlayerId || match.motm_player_id;
   const winner = candidates.find((player) => player.id === winnerId);

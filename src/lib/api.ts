@@ -174,9 +174,14 @@ export const api = {
     }));
     const lineups = (lineupResult.data || []).map((entry) => {
       const rosterEntry = roster.find((item) => item.player_id === entry.player_id);
+      const replaced = rosterEntry?.replaces_player_id
+        ? profiles.find((profile) => profile.id === rosterEntry.replaces_player_id)
+        : undefined;
       return {
         ...(entry as MatchLineup),
         team: rosterEntry?.team || 'A',
+        is_substitute: Boolean(rosterEntry?.is_substitute),
+        replaces_name: replaced?.name,
         player: rosterEntry?.player,
       };
     });
@@ -218,8 +223,31 @@ export const api = {
   async saveMatchRosterAndLineup(matchId: string, roster: MatchRosterEntry[], lineups: MatchLineup[]): Promise<void> {
     const { error } = await requireSupabase().rpc('save_match_roster_and_lineup', {
       p_match_id: matchId,
-      p_roster: roster.map(({ player_id, team }) => ({ player_id, team })),
+      p_roster: roster.map(({ player_id, team, is_substitute, is_unavailable, replaces_player_id }) => ({
+        player_id,
+        team,
+        is_substitute: Boolean(is_substitute),
+        is_unavailable: Boolean(is_unavailable),
+        replaces_player_id: replaces_player_id ?? null,
+      })),
       p_lineups: lineups.map(({ player_id, x_coord, y_coord, position_tag }) => ({ player_id, x_coord, y_coord, position_tag })),
+    });
+    if (error) throw error;
+  },
+
+  async substituteMatchPlayer(matchId: string, unavailablePlayerId: string, substituteId: string): Promise<void> {
+    const { error } = await requireSupabase().rpc('substitute_match_player', {
+      p_match_id: matchId,
+      p_unavailable_player_id: unavailablePlayerId,
+      p_substitute_id: substituteId,
+    });
+    if (error) throw error;
+  },
+
+  async undoMatchSubstitution(matchId: string, substituteId: string): Promise<void> {
+    const { error } = await requireSupabase().rpc('undo_match_substitution', {
+      p_match_id: matchId,
+      p_substitute_id: substituteId,
     });
     if (error) throw error;
   },
