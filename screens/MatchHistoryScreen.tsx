@@ -96,7 +96,15 @@ export const MatchHistoryScreen: React.FC<MatchHistoryScreenProps> = ({ matchId,
 
         <section><h3 className="mb-3 text-sm font-semibold text-white">Saved formations</h3><FormationsBoard lineups={selected.lineups} activeTeam="both" /></section>
 
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><h3 className="mb-3 text-sm font-semibold text-white">Match events</h3><ol className="space-y-2">{selected.events.map((event, index) => <li key={event.id || index} className="flex justify-between gap-3 text-sm"><span className="text-slate-200">{event.type.replaceAll('_', ' ')} · {event.scorer_name || 'Player'}{event.assist_name ? ` (assist: ${event.assist_name})` : ''}{event.detail ? ` · ${event.detail}` : ''}</span><span className="shrink-0 text-xs text-slate-500">{event.minute !== undefined ? `${event.minute}′ · ` : ''}{event.team === 'A' ? selectedMatch.team_a_name : selectedMatch.team_b_name}</span></li>)}{selected.events.length === 0 && <li className="text-sm text-slate-400">No events have been recorded.</li>}</ol></section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <h3 className="mb-3 text-sm font-semibold text-white">Match events</h3>
+        <ol className="space-y-2">{selected.events.map((event, index) => 
+          <li key={event.id || index} className="flex justify-between gap-3 text-sm">
+            <span className="text-slate-200">{event.type.replaceAll('_', ' ')} · {event.scorer_name || 'Player'}{event.assist_name ? ` (assist: ${event.assist_name})` : ''}{event.detail ? ` · ${event.detail}` : ''}</span>
+            <span className="shrink-0 text-xs text-slate-500">{event.minute !== undefined ? `${event.minute}′ · ` : ''}{event.team === 'A' ? selectedMatch.team_a_name : selectedMatch.team_b_name}</span>
+            </li>)}
+            {selected.events.length === 0 && 
+            <li className="text-sm text-slate-400">No events have been recorded.</li>}</ol></section>
 
         {selectedMatch.status === 'completed' && <section className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4"><h3 className="flex items-center gap-2 text-sm font-semibold text-white"><Trophy size={16} /> Man of the Match</h3>{getWinner(selected) ? <p className="mt-2 text-sm text-emerald-200">{getWinner(selected)?.name} · {selected.votes.filter((vote) => vote.voted_player_id === getWinner(selected)?.id).length} votes</p> : <p className="mt-2 text-sm text-slate-400">No votes yet · {selected.votes.length} total</p>}</section>}
       </article>}

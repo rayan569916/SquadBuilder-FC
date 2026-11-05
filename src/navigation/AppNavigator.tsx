@@ -7,12 +7,13 @@ import { FormationScreen } from '../screens/FormationScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LeaderboardsScreen } from '../screens/LeaderboardsScreen';
 import { MatchHistoryScreen } from '../screens/MatchHistoryScreen';
-import { MatchSetupScreen } from '../screens/MatchSetupScreen';
+// import { MatchSetupScreen } from '../screens/MatchSetupScreen';
 import { PlayerProfileScreen } from '../screens/PlayerProfileScreen';
+import { PlayersScreen } from '../screens/PlayersScreen';
 import { StatsEntryScreen } from '../screens/StatsEntryScreen';
 import { UserManagementScreen } from '../screens/UserManagementScreen';
 
-export type ScreenId = 'club' | 'balancer' | 'formation' | 'match_history' | 'stats_entry' | 'profile' | 'leaderboards' | 'admin_users';
+export type ScreenId = 'club' | 'balancer' | 'formation' | 'match_history' | 'stats_entry' | 'profile' | 'players' | 'leaderboards' | 'admin_users';
 
 export const AppNavigator: React.FC = () => {
   const { currentUser, isAdmin, isLoading, isAuthenticated, logout } = useAuth();
@@ -45,8 +46,8 @@ export const AppNavigator: React.FC = () => {
 
   const renderActiveScreen = () => {
     switch (currentScreen) {
-      case 'balancer':
-        return <MatchSetupScreen onMatchCreated={(id) => navigateTo('formation', id)} onNavigateToFormation={() => navigateTo('formation', selectedMatchId)} />;
+      // case 'balancer':
+      //   return <MatchSetupScreen onMatchCreated={(id) => navigateTo('formation', id)} onNavigateToFormation={() => navigateTo('formation', selectedMatchId)} />;
       case 'formation':
         return <FormationScreen matchId={selectedMatchId} onViewPlayer={(id) => navigateTo('profile', id)} onChooseMatch={() => navigateTo('balancer')} />;
       case 'stats_entry':
@@ -55,6 +56,8 @@ export const AppNavigator: React.FC = () => {
         return <MatchHistoryScreen matchId={selectedMatchId} onLogNewMatch={() => navigateTo('balancer')} onSelectMatch={(id) => navigateTo('stats_entry', id)} />;
       case 'profile':
         return <PlayerProfileScreen playerId={selectedPlayerId || currentUser?.id} onNavigateToTactics={() => navigateTo('formation', selectedMatchId)} />;
+      case 'players':
+        return <PlayersScreen initialPlayerId={selectedPlayerId} onSelectPlayer={(id) => setSelectedPlayerId(id)} onNavigateToTactics={() => navigateTo('formation', selectedMatchId)} />;
       case 'leaderboards':
         return <LeaderboardsScreen onSelectPlayer={(id) => navigateTo('profile', id)} />;
       case 'admin_users':
@@ -66,13 +69,16 @@ export const AppNavigator: React.FC = () => {
 
   const navItems = [
     { id: 'formation' as const, label: 'Tactics', Icon: CircleDot },
-    { id: 'balancer' as const, label: 'Balancer', Icon: Shuffle },
+    // { id: 'balancer' as const, label: 'Balancer', Icon: Shuffle },
     { id: 'match_history' as const, label: 'Match & Stats', Icon: ChartNoAxesColumn },
+    { id: 'players' as const, label: 'Players', Icon: Users },
     { id: 'club' as const, label: 'Club', Icon: Shield },
   ];
   const activeNavId = currentScreen === 'stats_entry'
     ? 'match_history'
-    : ['profile', 'leaderboards', 'admin_users'].includes(currentScreen) ? 'club' : currentScreen;
+    : ['profile', 'leaderboards', 'admin_users'].includes(currentScreen)
+    ? 'club'
+    : currentScreen;
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#080a10] text-slate-100">
@@ -86,7 +92,7 @@ export const AppNavigator: React.FC = () => {
             </span>
           </button>
           <div className="flex items-center gap-2">
-            {/* <button title="Notifications" className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10"><Bell size={17} /></button> */}
+            {/* <button title="Players Roster" onClick={() => navigateTo('players')} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white"><Users size={17} /></button> */}
             <button title="Leaderboards" onClick={() => navigateTo('leaderboards')} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10"><ChartNoAxesColumn size={17} /></button>
             {isAdmin && (
               <button onClick={() => navigateTo('admin_users')} title="Manage accounts" className="grid h-9 w-9 place-items-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"><Users size={18} /></button>
@@ -103,7 +109,7 @@ export const AppNavigator: React.FC = () => {
       <main className="ambient-blueprint ambient-halo mx-auto min-h-[calc(100vh-4rem)] w-full max-w-5xl pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))]">{renderActiveScreen()}</main>
 
       <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0c0e15]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <div className="mx-auto grid h-16 max-w-lg grid-cols-4 items-center px-2">
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center px-2">
           {navItems.map(({ id, label, Icon }) => (
             <button key={id} onClick={() => navigateTo(id)} aria-current={activeNavId === id ? 'page' : undefined}
               className={`flex h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] transition-colors ${activeNavId === id ? 'bg-primary-container/20 text-primary shadow-[inset_0_0_18px_rgba(112,66,248,0.18)]' : 'text-slate-400 hover:text-white'}`}>
