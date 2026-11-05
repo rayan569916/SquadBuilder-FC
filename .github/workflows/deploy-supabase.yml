@@ -33,8 +33,8 @@ jobs:
 
       - name: Deploy Edge Functions
         run: |
-          supabase functions deploy admin-create-user
-          supabase functions deploy admin-update-user
+          supabase functions deploy admin-create-user --yes
+          supabase functions deploy admin-update-user --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
