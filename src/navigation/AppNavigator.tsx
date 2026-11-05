@@ -109,7 +109,7 @@ export const AppNavigator: React.FC = () => {
       <main className="ambient-blueprint ambient-halo mx-auto min-h-[calc(100vh-4rem)] w-full max-w-5xl pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))]">{renderActiveScreen()}</main>
 
       <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0c0e15]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center px-2">
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-4 items-center px-2">
           {navItems.map(({ id, label, Icon }) => (
             <button key={id} onClick={() => navigateTo(id)} aria-current={activeNavId === id ? 'page' : undefined}
               className={`flex h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] transition-colors ${activeNavId === id ? 'bg-primary-container/20 text-primary shadow-[inset_0_0_18px_rgba(112,66,248,0.18)]' : 'text-slate-400 hover:text-white'}`}>
